@@ -111,7 +111,7 @@ ALICE=BOB
 ### equivalences.txt ###
 
 You can use this mapping to tell the tool that a table has been renamed.
-For example if you know that your table ADMINS has been renammed to ADMIN, then write:
+For example if you know that your table ADMINS has been renamed to ADMIN, then write:
 ```
 ADMINS=ADMIN
 ```
