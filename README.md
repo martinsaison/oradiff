@@ -123,4 +123,4 @@ I welcome any suggestions and comments.
 
 ## Licensing
 
-The code in this project is licensed under [MIT license](./LICENSE.md).
+The code in this project is licensed under [MIT license](./LICENSE).
