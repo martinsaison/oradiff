@@ -12,7 +12,7 @@ You will need:
 - the JDBC driver for Oracle (ojdbc14.jar). You can easily download it from http://www.oracle.com/technetwork/apps-tech/jdbc-10201-088211.html
 - git
 
-### Building
+## Building
 
 ```shell
 git clone https://github.com/khodev/oradiff.git
@@ -26,7 +26,7 @@ gradlew build
 cp build/libs/oradiff.jar where/you/want
 ```
 
-### Using
+## Using
 
 ```shell
 java -jar oradiff.jar -h
@@ -101,14 +101,14 @@ TBS_UAT_BLOB=TBS_PROD_BLOB
 
 Then oradiff will generate patch files by replacing the tablespace TBS_UAT_BLOB with TBS_PROD_BLOB.
 
-### usersroles.txt ###
+#### usersroles.txt ###
 
 This mapping allows you to replace users (e.g. grantees) when generating a patch:
 ```
 ALICE=BOB
 ```
 
-### equivalences.txt ###
+#### equivalences.txt ###
 
 You can use this mapping to tell the tool that a table has been renamed.
 For example if you know that your table ADMINS has been renamed to ADMIN, then write:
