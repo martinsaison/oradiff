@@ -20,290 +20,225 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-import java.util.ArrayList;
+class Table(
+    owner: String, tableName: String, tablespace: String,
+    var comments: String?
+) : TablespaceObject(owner, tableName, tablespace) {
+    var columns = ArrayList<Column>()
+    var indexes = ArrayList<Index>()
+    var constraints = ArrayList<Constraint>()
+    var grants = ArrayList<Grant>()
+    var publicSynonyms = ArrayList<PublicSynonym>()
 
-public class Table extends TablespaceObject {
-
-    private ArrayList<Column> columns = new ArrayList<>();
-
-    private String comments;
-
-    private ArrayList<Index> indexes = new ArrayList<>();
-    private ArrayList<Constraint> constraints = new ArrayList<>();
-    private ArrayList<Grant> grants = new ArrayList<>();
-    private ArrayList<PublicSynonym> publicSynonyms = new ArrayList<>();
-
-    public ArrayList<PublicSynonym> getPublicSynonyms() {
-        return publicSynonyms;
+    private fun columnChanges(diffOptions: DiffOptions, destination: Table): String {
+        return (sqlNewColumns(diffOptions, destination) + sqlDropColumns(destination)
+                + sqlAlterColumns(diffOptions, destination))
     }
 
-    public ArrayList<Constraint> getConstraints() {
-        return constraints;
-    }
-
-    public ArrayList<Grant> getGrants() {
-        return grants;
-    }
-
-    public Table(String owner, String tableName, String tablespace,
-                 String comments) {
-        super(owner, tableName, tablespace);
-        this.comments = comments;
-    }
-
-    private String columnChanges(Table destination) {
-        return sqlNewColumns(destination) + sqlDropColumns(destination)
-                + sqlAlterColumns(destination);
-    }
-
-    private String getColumnsComments(ArrayList<Column> columns) {
-        String res = "";
-        for (Column column : columns) {
-            if (column.getComment() != null)
-                res += column.sqlComments(getName());
+    private fun getColumnsComments(columns: ArrayList<Column>): String {
+        var res = ""
+        for (column in columns) {
+            res += column.sqlComments(name)
         }
-        return res;
+        return res
     }
 
-    private String indexChanges(Table destination) {
-        return sqlNewIndexes(destination) + sqlDropIndexes(destination)
-                + sqlAlterIndexes(destination);
+    private fun indexChanges(diffOptions: DiffOptions, destination: Table): String {
+        return (sqlNewIndexes(diffOptions, destination) + sqlDropIndexes(destination)
+                + sqlAlterIndexes(diffOptions, destination))
     }
 
-    private ArrayList<Index> newIndexes(Table destination) {
-        return newObjects(indexes, destination.getIndexes());
+    private fun newIndexes(destination: Table): ArrayList<Index> {
+        return newObjects(indexes, destination.indexes)
     }
 
-    private String sqlAlterColumns(Table destination) {
-        String res = "";
+    private fun sqlAlterColumns(diffOptions: DiffOptions, destination: Table): String {
+        var res = ""
         // columns diffs
-        ArrayList<Column> columnsDiffs = new ArrayList<>();
-        for (Column dst : destination.getColumns()) {
+        val columnsDiffs = ArrayList<Column?>()
+        for (dst in destination.columns) {
             // research in current table
-            Column src = getColumnByName(dst.getName());
+            val src = getColumnByName(dst.name)
             if (src != null) {
-                if (!src.dbEquals(dst))
-                    columnsDiffs.add(dst);
+                if (!src.dbEquals(diffOptions, dst)) columnsDiffs.add(dst)
             }
         }
-        if (columnsDiffs.size() > 0) {
-            res += "alter table " + getName() + " modify\n(";
-            boolean first = true;
-            for (Column dst : columnsDiffs) {
-                if (first)
-                    first = false;
-                else
-                    res += ", ";
-                res += "\n  " + dst.sqlCreate();
+        if (columnsDiffs.size > 0) {
+            res += """alter table $name modify
+("""
+            var first = true
+            for (dst in columnsDiffs) {
+                if (first) first = false else res += ", "
+                res += """
+  ${dst!!.sqlCreate(diffOptions)}"""
             }
-            res += "\n);\n";
+            res += "\n);\n"
         }
         // comments diffs
-
-        for (Column dst : destination.getColumns()) {
-            // research in current table
-            Column src = getColumnByName(dst.getName());
-            if (src != null) {
-                if ((src.getComment() == null && dst.getComment() != null)
-                        || (src.getComment() != null && dst.getComment() == null)
-                        || ((!(src.getComment() == null && dst.getComment() == null)) && (!trimLines(
-                        src.getComment()).equals(
-                        trimLines(dst.getComment()))))) {
-                    res += dst.sqlComments(getName());
+        if (!diffOptions.ignoreObjectComments) {
+            for (dst in destination.columns) {
+                // research in current table
+                val src = getColumnByName(dst.name)
+                if (src != null) {
+                    if (trimLines(src.comment) != trimLines(dst.comment)
+                    ) {
+                        res += dst.sqlComments(name)
+                    }
                 }
             }
         }
-
-        return res;
+        return res
     }
 
-    private String sqlAlterIndexes(Table destination) {
-        String res = "";
+    private fun sqlAlterIndexes(diffOptions: DiffOptions, destination: Table): String {
+        var res = ""
         // index diffs
-        for (Index dst : destination.getIndexes()) {
+        for (dst in destination.indexes) {
             // research in current table
-            Index src = getIndexByName(dst.getName());
+            val src = getIndexByName(dst.name)
             if (src != null) {
                 if (!src.dbEquals(dst)) {
-                    res += src.sqlDrop();
-                    res += dst.sqlCreate();
+                    res += src.sqlDrop()
+                    res += dst.sqlCreate(diffOptions)
                 }
             }
         }
-        return res;
+        return res
     }
 
-    private String sqlDropColumns(Table destination) {
-        String res = "";
-        ArrayList<Column> columnsToDrop = destination.newColumns(this);
-        for (Column column : columnsToDrop) {
-            res += "alter table " + escapeName(getName()) + " drop column "
-                    + escapeName(column.getName()) + ";\n";
+    private fun sqlDropColumns(destination: Table): String {
+        var res = ""
+        val columnsToDrop = destination.newColumns(this)
+        for (column in columnsToDrop) {
+            res += ("alter table " + escapeName(name) + " drop column "
+                    + escapeName(column.name) + ";\n")
         }
-        return res;
+        return res
     }
 
-    private String sqlDropIndexes(Table destination) {
-        String res = "";
-        ArrayList<Index> indexesToDrop = destination.newIndexes(this);
-        for (Index index : indexesToDrop) {
-            res += index.sqlDrop();
+    private fun sqlDropIndexes(destination: Table): String {
+        var res = ""
+        val indexesToDrop = destination.newIndexes(this)
+        for (index in indexesToDrop) {
+            res += index.sqlDrop()
         }
-        return res;
+        return res
     }
 
-    private String sqlNewColumns(Table destination) {
-        String res = "";
-        ArrayList<Column> columnsToAdd = newColumns(destination);
-        if (columnsToAdd.size() > 0) {
-            res += "alter table " + escapeName(getName()) + " add (";
-            boolean first = true;
-            for (Column column : columnsToAdd) {
+    private fun sqlNewColumns(diffOptions: DiffOptions, destination: Table): String {
+        var res = ""
+        val columnsToAdd = newColumns(destination)
+        if (columnsToAdd.size > 0) {
+            res += "alter table " + escapeName(name) + " add ("
+            var first = true
+            for (column in columnsToAdd) {
                 if (first) {
-                    first = false;
+                    first = false
                 } else {
-                    res += ",";
+                    res += ","
                 }
-                res += "\n  " + column.sqlCreate();
+                res += """
+  ${column.sqlCreate(diffOptions)}"""
             }
-            res += "\n);\n";
+            res += "\n);\n"
             // new column comments
-            res += getColumnsComments(columnsToAdd);
+            res += getColumnsComments(columnsToAdd)
         }
-        return res;
+        return res
     }
 
-    private String sqlNewIndexes(Table destination) {
-        String res = "";
-        ArrayList<Index> indexesToAdd = newIndexes(destination);
-        for (Index index : indexesToAdd) {
-            res += index.sqlCreate();
+    private fun sqlNewIndexes(diffOptions: DiffOptions, destination: Table): String {
+        var res = ""
+        val indexesToAdd = newIndexes(destination)
+        for (index in indexesToAdd) {
+            res += index.sqlCreate(diffOptions)
         }
-        return res;
+        return res
     }
 
-    private String trimLines(String txt) {
-        String res = "";
-        for (String line : txt.split("\n")) {
-            line = line.trim();
-            if (line.length() > 0)
-                res += line + "\n";
+    private fun trimLines(txt: String?): String {
+        var res = ""
+        for (line in txt!!.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()) {
+            val line1 = line.trim { it <= ' ' }
+            if (line1.isNotEmpty()) res += line1 + "\n"
         }
-        return res;
+        return res
     }
 
-    public boolean dbEquals(Table dst) {
-        return sqlUpdate(dst).length() == 0;
+    fun dbEquals(diffOptions: DiffOptions, dst: Table): Boolean {
+        return sqlUpdate(diffOptions, dst).isEmpty()
     }
 
-    public Column getColumnByName(String name) {
-        for (Column c : columns) {
-            if (c.getName().equals(name))
-                return c;
+    fun getColumnByName(name: String?): Column? {
+        for (c in columns) {
+            if (c.name == name) return c
         }
-        return null;
+        return null
     }
 
-    public ArrayList<Column> getColumns() {
-        return columns;
-    }
-
-    public String getComments() {
-        return comments;
-    }
-
-    public Index getIndexByName(String name) {
-        for (Index c : indexes) {
-            if (c.getName().equals(name))
-                return c;
+    fun getIndexByName(name: String?): Index? {
+        for (c in indexes) {
+            if (c.name == name) return c
         }
-        return null;
+        return null
     }
 
-    public ArrayList<Index> getIndexes() {
-        return indexes;
-    }
-
-    @Override
-    public String getTypeName() {
-        return "TABLE";
-    }
+    override val typeName: String
+        get() = "TABLE"
 
     // returns columns which are in destination table but not in current table
-    private ArrayList<Column> newColumns(Table destination) {
-        return newObjects(columns, destination.getColumns());
+    private fun newColumns(destination: Table): ArrayList<Column> {
+        return newObjects(columns, destination.columns)
     }
 
-    public String sqlCreate() {
+    override fun sqlCreate(diffOptions: DiffOptions): String {
         // table
-        String res = "create table " + escapeName(getName()) + " (";
-        boolean first = true;
-        for (Column column : columns) {
-            if (first)
-                first = false;
-            else
-                res += ",";
-            res += "\n  " + column.sqlCreate();
+        var res: String = "create table " + escapeName(name) + " ("
+        var first = true
+        for (column in columns) {
+            if (first) first = false else res += ","
+            res += """
+  ${column.sqlCreate(diffOptions)}"""
         }
-        res += "\n)" + getTablespaceSql() + ";\n";
+        res += """
+            
+            )${tablespaceSql(diffOptions)};
+            
+            """.trimIndent()
         // table comments
-        if (comments != null)
-            res += "comment on table " + getName() + "\n  is '"
-                    + escape(comments) + "';\n";
+        if (comments != null) res += """comment on table $name
+  is '${escape(comments)}';
+"""
         // column comments
-        res += getColumnsComments(columns);
+        res += getColumnsComments(columns)
         // indexes
-        if (indexes.size() > 0) {
-            for (Index index : indexes) {
-                res += index.sqlCreate();
+        if (indexes.size > 0) {
+            for (index in indexes) {
+                res += index.sqlCreate(diffOptions)
             }
         }
         // grants
-        if (grants.size() > 0) {
-            for (Grant grant : grants) {
-                res += grant.sqlCreate();
+        if ((!diffOptions.ignoreGrantChanges) && grants.size > 0) {
+            for (grant in grants) {
+                res += grant.sqlCreate(diffOptions)
             }
         }
-        return res;
+        return res
     }
 
-    public String sqlUpdate(DBObject destination) {
-        String res = "";
-        Table dst = (Table) destination;
-        res += columnChanges(dst);
-        res += indexChanges(dst);
-        if (!dst.getName().equals(this.getName())) {
-            res += "ALTER TABLE " + getName() + " RENAME TO " + dst.getName()
-                    + ";";
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        var res = ""
+        val dst = destination as Table
+        res += columnChanges(diffOptions, dst)
+        res += indexChanges(diffOptions, dst)
+        if (dst.name != name) {
+            res += ("ALTER TABLE " + name + " RENAME TO " + dst.name
+                    + ";")
         }
-        return res;
+        return res
     }
-
-    public void setColumns(ArrayList<Column> columns) {
-        this.columns = columns;
-    }
-
-    public void setComments(String comments) {
-        this.comments = comments;
-    }
-
-    public void setIndexes(ArrayList<Index> indexes) {
-        this.indexes = indexes;
-    }
-
-    public void setConstraints(ArrayList<Constraint> constraints) {
-        this.constraints = constraints;
-    }
-
-    public void setGrants(ArrayList<Grant> grants) {
-        this.grants = grants;
-    }
-
-    public void setPublicSynonyms(ArrayList<PublicSynonym> publicSynonyms) {
-        this.publicSynonyms = publicSynonyms;
-    }
-
 }

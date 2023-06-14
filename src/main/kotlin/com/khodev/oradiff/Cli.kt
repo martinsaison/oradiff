@@ -20,172 +20,193 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff
 
-package com.khodev.oradiff;
+import com.khodev.oradiff.dbobjects.*
+import com.khodev.oradiff.diff.DiffOptions
+import com.khodev.oradiff.io.*
+import com.khodev.oradiff.util.Configuration
+import com.khodev.oradiff.util.DiffExporter
+import org.apache.commons.cli.*
+import org.xml.sax.SAXException
+import java.io.IOException
+import java.lang.reflect.InvocationTargetException
+import java.sql.SQLException
+import java.util.*
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import javax.xml.parsers.ParserConfigurationException
+import kotlin.system.exitProcess
 
+class Cli private constructor(private val args: Array<String>) {
+    private val options = Options()
 
-import com.khodev.oradiff.dbobjects.Schema;
-import com.khodev.oradiff.io.*;
-import com.khodev.oradiff.util.Configuration;
-import com.khodev.oradiff.util.DiffExporter;
-import org.apache.commons.cli.*;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.sql.SQLException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-public class Cli {
-
-    private final String[] args;
-    private final Options options = new Options();
-
-    public static void main(String[] args) throws IOException, NoProviderFound, InstantiationException, IllegalAccessException, NoSuchMethodException, SQLException, ParserConfigurationException, InvocationTargetException, SAXException, ClassNotFoundException {
-        Cli cli = new Cli(args);
-        cli.parse();
+    internal interface Argument {
+        fun matches(): Boolean
+        fun load(): Schema?
     }
 
-    interface Argument {
-        boolean matches();
+    internal inner class DBArgument(arg: String) : Argument {
+        private val pattern = Pattern.compile("(.*):(.*):(.*):(.*):(.*)")
+        private val matcher: Matcher
 
-        Schema load();
-    }
-
-    class DBArgument implements Argument {
-
-        final Pattern pattern = Pattern.compile("(.*):(.*):(.*):(.*):(.*)");
-        final Matcher matcher;
-
-        public DBArgument(String arg) {
-            matcher = pattern.matcher(arg);
+        init {
+            matcher = pattern.matcher(arg)
         }
 
-        @Override
-        public boolean matches() {
-            return matcher.matches();
+        override fun matches(): Boolean {
+            return matcher.matches()
         }
 
-        @Override
-        public Schema load() {
-            matcher.reset();
+        override fun load(): Schema {
+            matcher.reset()
             if (!matcher.find()) {
-                return new Schema();
+                return Schema()
             }
-            String host = matcher.group(1);
-            String port = matcher.group(2);
-            String sid = matcher.group(3);
-            String user = matcher.group(4);
-            String pass = matcher.group(5);
-            SchemaReader reader = new ConnectedSchemaReader(host, port, sid, user, pass);
-            return reader.get();
+            val host = matcher.group(1)
+            val port = matcher.group(2)
+            val sid = matcher.group(3)
+            val user = matcher.group(4)
+            val pass = matcher.group(5)
+            val reader: SchemaReader = ConnectedSchemaReader(host, port, sid, user, pass)
+            return reader.get()
         }
-
     }
 
-    class XmlFileArgument implements Argument {
+    internal inner class XmlFileArgument(val filename: String) : Argument {
+        private val pattern = Pattern.compile("(.*\\.xml)")
+        private val matcher: Matcher = pattern.matcher(filename)
 
-        private final String filename;
-
-        public String getFilename() {
-            return filename;
+        override fun matches(): Boolean {
+            return matcher.matches()
         }
 
-        final Pattern pattern = Pattern.compile("(.*\\.xml)");
-        final Matcher matcher;
-
-        public XmlFileArgument(String arg) {
-            matcher = pattern.matcher(arg);
-            this.filename = arg;
+        override fun load(): Schema {
+            return XmlSchemaReader(filename).get()
         }
-
-        @Override
-        public boolean matches() {
-            return matcher.matches();
-        }
-
-        @Override
-        public Schema load() {
-            return new XmlSchemaReader(filename).get();
-        }
-
     }
 
-    private Argument getArgument(String arg) throws Exception {
-        Argument argument = new DBArgument(arg);
+    internal inner class NullArgument(private var arg: String) : Argument {
+        override fun matches(): Boolean {
+            return arg.lowercase(Locale.getDefault()) == "null"
+        }
+
+        override fun load(): Schema {
+            return Schema()
+        }
+    }
+
+    @Throws(Exception::class)
+    private fun getArgument(arg: String): Argument {
+        var argument: Argument = DBArgument(arg)
         if (argument.matches()) {
-            return argument;
+            return argument
         }
-        argument = new XmlFileArgument(arg);
+        argument = XmlFileArgument(arg)
         if (argument.matches()) {
-            return argument;
+            return argument
         }
-        throw new Exception("Argument " + arg + " is incorrect");
+        argument = NullArgument(arg)
+        if (argument.matches()) {
+            return argument
+        }
+        throw Exception("Argument $arg is incorrect")
     }
 
-    private Cli(String[] args) {
-        this.args = args;
-        OptionGroup commands = new OptionGroup();
-        commands.addOption(new Option("h", "help", false, "show this help"));
-        commands.addOption(Option.builder("s").longOpt("save").desc("save a schema to a file").hasArg(true).numberOfArgs(2).argName("host:port:sid:user:pass> <filename.xml").build());
-        commands.addOption(Option.builder("d").longOpt("diff").desc("generate a diff between 2 schemas").hasArg(true).numberOfArgs(3).argName("from> <to> <destdir").build());
-        commands.setRequired(true);
-        options.addOptionGroup(commands);
-        options.addOption("sm", "save-map", false, "save new substitutions into a file");
-        options.addOption("rf", "rename-folder", false, "automatically change the destination folder to a new one if already exists");
-        options.addOption("on", "old-new", false, "generate old and new files");
+    init {
+        val commands = OptionGroup()
+        commands.addOption(Option("h", "help", false, "show this help"))
+        commands.addOption(
+            Option.builder("s").longOpt("save").desc("save a schema to a file").hasArg(true).numberOfArgs(2)
+                .argName("host:port:sid:user:pass> <filename.xml").build()
+        )
+        commands.addOption(
+            Option.builder("d").longOpt("diff").desc("generate a diff between 2 schemas").hasArg(true).numberOfArgs(3)
+                .argName("from> <to> <destdir").build()
+        )
+        commands.isRequired = true
+        options.addOptionGroup(commands)
+        options.addOption("sm", "save-map", false, "save new substitutions into a file")
+        options.addOption(
+            "rf",
+            "rename-folder",
+            false,
+            "automatically change the destination folder to a new one if already exists"
+        )
+        options.addOption("on", "old-new", false, "generate old and new files")
+        options.addOption("ts", "with-tablespace", false, "include tablespace in the diff")
+        options.addOption("ioc", "with-object-comments", false, "include object comments in the diff")
+        options.addOption("isc", "with-soruce-comments", false, "include source comments in the diff")
+        options.addOption("igc", "with-grant-changes", false, "include grant changes in the diff")
     }
 
-    private void parse() {
-        CommandLineParser parser = new DefaultParser();
+    private fun parse() {
+        val parser: CommandLineParser = DefaultParser()
         try {
-            CommandLine cmd = parser.parse(options, args);
+            val cmd = parser.parse(options, args)
             if (cmd.hasOption("h")) {
-                help();
+                help()
             }
-
-            Configuration.saveNewSubstitutes = cmd.hasOption("sm");
-            Configuration.renameFolderIfExists = cmd.hasOption("nf");
-            Configuration.createOldNew = cmd.hasOption("on");
-
+            Configuration.saveNewSubstitutes = cmd.hasOption("sm")
+            Configuration.renameFolderIfExists = cmd.hasOption("nf")
+            Configuration.createOldNew = cmd.hasOption("on")
             if (cmd.hasOption('s')) {
-                Argument db = getArgument(cmd.getOptionValues('s')[0]);
-                if (!(db instanceof DBArgument)) {
-                    throw new Exception("first parameter should be a database");
-                }
-                Argument file = getArgument(cmd.getOptionValues('s')[1]);
-                if (!(file instanceof XmlFileArgument)) {
-                    throw new Exception("second parameter should be an xml file");
-                }
-                XmlSchemaWriter writer = new XmlSchemaWriter(((XmlFileArgument) file).getFilename());
-                writer.write(db.load());
-                System.exit(0);
+                val db = getArgument(cmd.getOptionValues('s')[0]) as? DBArgument
+                    ?: throw Exception("first parameter should be a database")
+                val file = getArgument(cmd.getOptionValues('s')[1]) as? XmlFileArgument
+                    ?: throw Exception("second parameter should be an xml file")
+                val writer = XmlSchemaWriter(file.filename)
+                writer.write(db.load())
+                exitProcess(0)
             } else if (cmd.hasOption('d')) {
-                Schema src = getArgument(cmd.getOptionValues('d')[0]).load();
-                Schema dst = getArgument(cmd.getOptionValues('d')[1]).load();
-                String path = cmd.getOptionValues('d')[2];
-                DiffExporter exporter = new DiffExporter(src, dst, path);
-                exporter.run();
-                System.exit(0);
+                val src = getArgument(cmd.getOptionValues('d')[0]).load()
+                val dst = getArgument(cmd.getOptionValues('d')[1]).load()
+                val path = cmd.getOptionValues('d')[2]
+                val exporter = DiffExporter(src, dst, path)
+                val diffOptions = DiffOptions(
+                    withTablespace = cmd.hasOption("ts"),
+                    ignoreSourceComments = !cmd.hasOption("isc"),
+                    ignoreObjectComments = !cmd.hasOption("ioc"),
+                    ignoreGrantChanges = !cmd.hasOption("igc")
+                )
+                exporter.run(diffOptions)
+                exitProcess(0)
             }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            System.exit(1);
+        } catch (e: Exception) {
+            println(e.message)
+            exitProcess(1)
         }
     }
 
-    private void help() {
-        HelpFormatter formater = new HelpFormatter();
-        formater.printHelp("java -jar oradiff.jar -<command> [...]", options);
-        System.out.println("<from> and <to> can be either a database connection host:port:sid:user:pass or a file.xml");
-        System.out.println("Examples");
-        System.out.println("java -jar oradiff.jar --save localhost:1521:MYDB:USER:PASS backup.xml");
-        System.out.println("java -jar oradiff.jar --diff localhost:1521:DB1:USER:PASS localhost:1521:DB2:USER:PASS path/to/results");
-        System.out.println("java -jar oradiff.jar --diff backup1.xml backup2.xml path/to/results");
-        System.out.println("java -jar oradiff.jar --diff backup1.xml localhost:1521:MYDB:USER:PASS backup.xml path/to/results");
-        System.exit(0);
+    private fun help() {
+        val formater = HelpFormatter()
+        formater.printHelp("java -jar oradiff.jar -<command> [...]", options)
+        println("<from> and <to> can be either a database connection host:port:sid:user:pass or a file.xml")
+        println("Examples")
+        println("java -jar oradiff.jar --save localhost:1521:MYDB:USER:PASS backup.xml")
+        println("java -jar oradiff.jar --diff localhost:1521:DB1:USER:PASS localhost:1521:DB2:USER:PASS path/to/results")
+        println("java -jar oradiff.jar --diff backup1.xml backup2.xml path/to/results")
+        println("java -jar oradiff.jar --diff backup1.xml localhost:1521:MYDB:USER:PASS backup.xml path/to/results")
+        exitProcess(0)
     }
 
+    companion object {
+        @Throws(
+            IOException::class,
+            NoProviderFound::class,
+            InstantiationException::class,
+            IllegalAccessException::class,
+            NoSuchMethodException::class,
+            SQLException::class,
+            ParserConfigurationException::class,
+            InvocationTargetException::class,
+            SAXException::class,
+            ClassNotFoundException::class
+        )
+        @JvmStatic
+        fun main(args: Array<String>) {
+            val cli = Cli(args)
+            cli.parse()
+        }
+    }
 }

@@ -20,165 +20,58 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-public class Column extends SubDBObject {
-    private int id;
+class Column(
+    name: String, var id: Int, var type: String, var length: Int, var precision: Int,
+    var scale: Int, var isNullable: Boolean, var comment: String, var defaultValue: String,
+    parent: Table
+) : SubDBObject(name, parent) {
 
-    private String type;
-
-    private int length;
-
-    private int precision;
-
-    private int scale;
-
-    private boolean nullable;
-
-    private String comment;
-
-    private String defaultValue;
-
-    public Column(String name, int id, String type, int length, int precision,
-                  int scale, boolean nullable, String comment, String defaultValue) {
-        super(name, null);
-        this.id = id;
-        this.type = type;
-        this.length = length;
-        this.precision = precision;
-        this.scale = scale;
-        this.nullable = nullable;
-        this.comment = comment;
-        this.defaultValue = defaultValue;
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        var res = escapeName(name) + " " + typeAsSql()
+        if (!isNullable) res += " not null"
+        if (defaultValue.length > 0) res += " default $defaultValue"
+        return res
     }
 
-    public String getDefaultValue() {
-        return defaultValue;
-    }
-
-    public void setDefaultValue(String defaultValue) {
-        this.defaultValue = defaultValue;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public int getLength() {
-        return length;
-    }
-
-    public void setLength(int length) {
-        this.length = length;
-    }
-
-    public boolean isNullable() {
-        return nullable;
-    }
-
-    public void setNullable(boolean nullable) {
-        this.nullable = nullable;
-    }
-
-    public int getPrecision() {
-        return precision;
-    }
-
-    public void setPrecision(int precision) {
-        this.precision = precision;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comments) {
-        this.comment = comments;
-    }
-
-    public String sqlCreate() {
-        String res = escapeName(this.getName()) + " " + this.typeAsSql();
-        if (!nullable)
-            res += " not null";
-        if (defaultValue.length() > 0)
-            res += " default " + defaultValue;
-        return res;
-    }
-
-    private String typeAsSql() {
-        switch (type) {
-            case "NUMBER":
-                if (precision == 0)
-                    return "NUMBER";
-                else if (scale == 0)
-                    return "NUMBER(" + precision + ")";
-                else
-                    return "NUMBER(" + precision + ", " + scale + ")";
-            case "CHAR":
-                return "CHAR(" + length + ")";
-            case "VARCHAR2":
-                return "VARCHAR2(" + length + ")";
-            case "DATE":
-                return "DATE";
-            case "LONG":
-                return "LONG";
-            case "ROWID":
-                return "ROWID";
-            case "RAW":
-                return "RAW(" + length + ")";
-            case "LONG RAW":
-                return "LONG RAW";
-            default:
-                return "UNKNOWN";
+    private fun typeAsSql(): String {
+        return when (type) {
+            "NUMBER" -> if (precision == 0) "NUMBER" else if (scale == 0) "NUMBER($precision)" else "NUMBER($precision, $scale)"
+            "CHAR" -> "CHAR($length)"
+            "VARCHAR2" -> "VARCHAR2($length)"
+            "DATE" -> "DATE"
+            "LONG" -> "LONG"
+            "ROWID" -> "ROWID"
+            "RAW" -> "RAW($length)"
+            "LONG RAW" -> "LONG RAW"
+            else -> "UNKNOWN"
         }
     }
 
-    public int getScale() {
-        return scale;
+    fun dbEquals(diffOptions: DiffOptions, column: Column): Boolean {
+        return type == column.type
+                && length == column.length
+                && precision == column.precision
+                && scale == column.scale
+                && isNullable == column.isNullable
+                && defaultValue.trim { it <= ' ' } == column.defaultValue.trim { it <= ' ' }
     }
 
-    public void setScale(int scale) {
-        this.scale = scale;
+    fun sqlComments(tablename: String?): String {
+        var res = ""
+        res += """comment on column $tablename.$name
+  is '${escape(comment)}';
+"""
+        return res
     }
 
-    public boolean dbEquals(Column column) {
-        return (type.equals(column.type)) && (length == column.length)
-                && (precision == column.precision) && (scale == column.scale)
-                && (nullable == column.nullable)
-                && (defaultValue.trim().equals(column.defaultValue.trim()));
-    }
+    override val typeName: String
+        get() = "COLUMN"
 
-    public String sqlComments(String tablename) {
-        String res = "";
-        String comments = getComment();
-        if (comments == null)
-            comments = "";
-        res += "comment on column " + tablename + "." + getName() + "\n  is '"
-                + escape(comments) + "';\n";
-        return res;
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return sqlCreate(diffOptions)
     }
-
-    @Override
-    public String getTypeName() {
-        return "COLUMN";
-    }
-
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return sqlCreate();
-    }
-
 }

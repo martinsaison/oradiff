@@ -20,66 +20,44 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-import java.util.ArrayList;
+class View(name: String, source: String) : DBObject(name) {
+    val columns = ArrayList<String?>()
+    var source: String
 
-public class View extends DBObject {
-
-    private final ArrayList<String> columns = new ArrayList<>();
-    private String source;
-
-    public View(String name, String source) {
-        super(name);
-        this.source = removeR4(source);
+    init {
+        this.source = DBObject.Companion.removeR4(source)
     }
 
-    public ArrayList<String> getColumns() {
-        return columns;
+    fun addColumn(column: String?) {
+        columns.add(column)
     }
 
-    public String getSource() {
-        return source;
+    fun dbEquals(dst: View): Boolean {
+        return DBObject.Companion.textForDiff(dst.source) == DBObject.Companion.textForDiff(source) && columns == dst.columns
     }
 
-    public void setSource(String source) {
-        this.source = source;
-    }
+    override val typeName: String
+        get() = "VIEW"
 
-    public void addColumn(String column) {
-        columns.add(column);
-    }
-
-    public boolean dbEquals(View dst) {
-        return textForDiff(dst.source).equals(textForDiff(source))
-                && columns.equals(dst.columns);
-    }
-
-    @Override
-    public String getTypeName() {
-        return "VIEW";
-    }
-
-    @Override
-    public String sqlCreate() {
-        String res = "CREATE OR REPLACE VIEW " + getName() + "\n(";
-        boolean first = true;
-        for (String column : columns) {
-            if (first)
-                first = false;
-            else
-                res += ", ";
-            res += column;
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        var res: String = """
+            CREATE OR REPLACE VIEW $name
+            (
+            """.trimIndent()
+        var first = true
+        for (column in columns) {
+            if (first) first = false else res += ", "
+            res += column
         }
-        res += ")\n AS\n" + source + "\n/\n";
-        return res;
+        res += ")\n AS\n$source\n/\n"
+        return res
     }
 
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return destination.sqlCreate();
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return destination.sqlCreate(diffOptions)
     }
-
-
 }

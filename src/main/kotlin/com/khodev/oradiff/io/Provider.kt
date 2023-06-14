@@ -20,26 +20,26 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.io
 
-package com.khodev.oradiff.io;
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.util.*
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
-class Provider {
-
-    public static SchemaReader getReader(String filename) throws NoProviderFound, IOException {
-        File file = new File(filename);
+internal object Provider {
+    @Throws(NoProviderFound::class, IOException::class)
+    fun getReader(filename: String): SchemaReader {
+        val file = File(filename)
         if (!file.exists()) {
-            throw new FileNotFoundException(filename);
+            throw FileNotFoundException(filename)
         }
-        if (filename.toLowerCase().endsWith(".xml")) {
-            return new XmlSchemaReader(filename);
+        if (filename.lowercase(Locale.getDefault()).endsWith(".xml")) {
+            return XmlSchemaReader(filename)
         }
-        if (filename.toLowerCase().endsWith(".ini")) {
-            return new ConnectedSchemaReader(filename);
+        if (filename.lowercase(Locale.getDefault()).endsWith(".ini")) {
+            return ConnectedSchemaReader(filename)
         }
-        throw new NoProviderFound(filename);
+        throw NoProviderFound(filename)
     }
 }

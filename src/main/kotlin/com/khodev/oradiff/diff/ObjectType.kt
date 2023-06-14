@@ -20,10 +20,17 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.diff
 
-package com.khodev.oradiff.diff;
-
-
-public enum ObjectType {
-    TABLE, PACKAGE, PROCEDURE, FUNCTION, JOB, SEQUENCE, SYNONYM, TRIGGER, VIEW, PUBLIC_SYNONYM
+enum class ObjectType {
+    TABLE,
+    PACKAGE,
+    PROCEDURE,
+    FUNCTION,
+    JOB,
+    SEQUENCE,
+    SYNONYM,
+    TRIGGER,
+    VIEW,
+    PUBLIC_SYNONYM
 }

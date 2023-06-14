@@ -20,46 +20,34 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-import java.util.ArrayList;
-
-public abstract class Source extends DBObject {
-
-    private final ArrayList<String> body = new ArrayList<>();
-
-    Source(String name) {
-        super(name);
+abstract class Source internal constructor(name: String) : DBObject(name) {
+    val body = ArrayList<String>()
+    open fun getSource(type: String): ArrayList<String> {
+        return body
     }
 
-    ArrayList<String> getSource(String type) {
-        return body;
+    fun append(type: String, line: Int, text: String) {
+        getSource(type)!!.add(text)
     }
 
-    public void append(String type, int line, String text) {
-        getSource(type).add(text);
+    fun dbEquals(diffOptions: DiffOptions, dst: Source): Boolean {
+        return DBObject.Companion.textForDiff(diffOptions, body) == DBObject.Companion.textForDiff(diffOptions, dst.body)
     }
 
-    public boolean dbEquals(Source dst) {
-        return textForDiff(body).equals(textForDiff(dst.getBody()));
-    }
-
-    public ArrayList<String> getBody() {
-        return body;
-    }
-
-    public String sqlCreate() {
-        String res = "CREATE OR REPLACE ";
-        for (String line : getBody()) {
-            res += removeR4(line);
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        var res = "CREATE OR REPLACE "
+        for (line in body) {
+            res += DBObject.Companion.removeR4(line)
         }
-        res += "/\n";
-        return res;
+        res += "/\n"
+        return res
     }
 
-    public String sqlUpdate(DBObject destination) {
-        return destination.sqlCreate();
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return destination.sqlCreate(diffOptions)
     }
-
 }

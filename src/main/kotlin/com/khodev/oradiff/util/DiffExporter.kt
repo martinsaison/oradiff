@@ -20,132 +20,120 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.util
 
-package com.khodev.oradiff.util;
+import com.khodev.oradiff.dbobjects.*
+import com.khodev.oradiff.diff.*
+import java.io.*
 
-import com.khodev.oradiff.dbobjects.Schema;
-import com.khodev.oradiff.diff.*;
+class DiffExporter(
+    private val initialSchema: Schema?,
+    private val finalSchema: Schema?,
+    private var destFolder: String
+) : DiffListener {
+    private var fAll: PrintWriter? = null
+    private val manager = DiffManager()
 
-import java.io.*;
-
-public class DiffExporter implements DiffListener {
-
-    private String destFolder;
-    private PrintWriter fAll;
-    private final DiffManager manager = new DiffManager();
-    private final Schema initialSchema;
-    private final Schema finalSchema;
-
-    public DiffExporter(Schema initialSchema, Schema finalSchema, String destFolder) {
-        this.initialSchema = initialSchema;
-        this.finalSchema = finalSchema;
-        this.destFolder = destFolder;
-        manager.addDiffListener(this);
+    init {
+        manager.addDiffListener(this)
     }
 
-    private String getFileName(Operation diff, ObjectType obj, String name) {
-        String diffStr;
-        switch (diff) {
-            case CREATE:
-                diffStr = "create";
-                break;
-            case UPDATE:
-                diffStr = "update";
-                break;
-            case DROP:
-                diffStr = "drop";
-                break;
-            default:
-                diffStr = "unknown";
+    private fun getFileName(diff: Operation, obj: ObjectType, name: String?): String {
+        var diffStr: String
+        diffStr = when (diff) {
+            Operation.CREATE -> "create"
+            Operation.UPDATE -> "update"
+            Operation.DROP -> "drop"
+            else -> "unknown"
         }
-        String objStr;
-        switch (obj) {
-            case TABLE:
-                objStr = "table";
-                if (diff == Operation.UPDATE)
-                    diffStr = "alter";
-                break;
-            case PACKAGE:
-                objStr = "package";
-                break;
-            case PROCEDURE:
-                objStr = "procedure";
-                break;
-            case FUNCTION:
-                objStr = "function";
-                break;
-            case JOB:
-                objStr = "job";
-                break;
-            case SEQUENCE:
-                objStr = "sequence";
-                break;
-            case VIEW:
-                objStr = "view";
-                break;
-            case TRIGGER:
-                objStr = "trigger";
-                break;
-            case SYNONYM:
-                objStr = "synonym";
-                break;
-            case PUBLIC_SYNONYM:
-                objStr = "public_synonym";
-                break;
-            default:
-                objStr = "unknown";
+        val objStr: String
+        when (obj) {
+            ObjectType.TABLE -> {
+                objStr = "table"
+                if (diff == Operation.UPDATE) diffStr = "alter"
+            }
+
+            ObjectType.PACKAGE -> objStr = "package"
+            ObjectType.PROCEDURE -> objStr = "procedure"
+            ObjectType.FUNCTION -> objStr = "function"
+            ObjectType.JOB -> objStr = "job"
+            ObjectType.SEQUENCE -> objStr = "sequence"
+            ObjectType.VIEW -> objStr = "view"
+            ObjectType.TRIGGER -> objStr = "trigger"
+            ObjectType.SYNONYM -> objStr = "synonym"
+            ObjectType.PUBLIC_SYNONYM -> objStr = "public_synonym"
+            else -> objStr = "unknown"
         }
-        String folder = destFolder + "\\" + objStr;
-        File dest = new File(folder);
-        if (!dest.exists())
-            dest.mkdir();
-        return folder + "\\" + diffStr + "_" + objStr + "_" + name + ".sql";
+        val folder = destFolder + "\\" + objStr
+        val dest = File(folder)
+        if (!dest.exists()) dest.mkdir()
+        return folder + "\\" + diffStr + "_" + objStr + "_" + name + ".sql"
     }
 
-    public void diffPerformed(Operation diffType, ObjectType diffObject, String name, DBObjectDiff diff) {
+    override fun diffPerformed(diffOptions: DiffOptions, diffType: Operation, diffObject: ObjectType, name: String, diff: DBObjectDiff<*>) {
         try {
-            PrintWriter f = new PrintWriter(new BufferedOutputStream(new FileOutputStream(
-                    getFileName(diffType, diffObject, name))));
-            f.write(diff.sqlCreate());
-            f.close();
-            fAll.write(diff.sqlCreate());
-            if (diff.getSrc() != null && Configuration.createOldNew) {
-                f = new PrintWriter(new BufferedOutputStream(
-                        new FileOutputStream(getFileName(diffType, diffObject,
-                                name) + "_old")));
-                f.write(diff.getSrc().sqlCreate());
-                f.close();
+            var f = PrintWriter(
+                BufferedOutputStream(
+                    FileOutputStream(
+                        getFileName(diffType, diffObject, name)
+                    )
+                )
+            )
+            f.write(diff.sqlCreate(diffOptions))
+            f.close()
+            fAll!!.write(diff.sqlCreate(diffOptions))
+            if (diff.src != null && Configuration.createOldNew) {
+                f = PrintWriter(
+                    BufferedOutputStream(
+                        FileOutputStream(
+                            getFileName(
+                                diffType, diffObject,
+                                name
+                            ) + "_old"
+                        )
+                    )
+                )
+                f.write(diff.src.sqlCreate(diffOptions))
+                f.close()
             }
-            if (diff.getDst() != null && Configuration.createOldNew) {
-                f = new PrintWriter(new BufferedOutputStream(
-                        new FileOutputStream(getFileName(diffType, diffObject,
-                                name) + "_new")));
-                f.write(diff.getDst().sqlCreate());
-                f.close();
+            if (diff.dst != null && Configuration.createOldNew) {
+                f = PrintWriter(
+                    BufferedOutputStream(
+                        FileOutputStream(
+                            getFileName(
+                                diffType, diffObject,
+                                name
+                            ) + "_new"
+                        )
+                    )
+                )
+                f.write(diff.dst.sqlCreate(diffOptions))
+                f.close()
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    public void run() throws IOException {
-        File dest = new File(destFolder);
-        int i = 0;
-        String newName = destFolder;
+    @Throws(IOException::class)
+    fun run(diffOptions: DiffOptions) {
+        var dest = File(destFolder)
+        var i = 0
+        var newName = destFolder
         if (Configuration.renameFolderIfExists) {
             while (dest.exists()) {
-                newName = destFolder + "(" + (++i) + ")";
-                dest = new File(newName);
+                newName = destFolder + "(" + ++i + ")"
+                dest = File(newName)
             }
-            if (!destFolder.equals(newName))
-                System.out.println("Folder " + destFolder
-                        + " already exists, using " + newName);
+            if (destFolder != newName) println(
+                "Folder " + destFolder
+                        + " already exists, using " + newName
+            )
         }
-        destFolder = newName;
-        dest.mkdir();
-        fAll = new PrintWriter(new File(destFolder + "\\all_data.sql"));
-        manager.doPatch(initialSchema, finalSchema);
-        fAll.close();
+        destFolder = newName
+        dest.mkdir()
+        fAll = PrintWriter(File("$destFolder\\all_data.sql"))
+        manager.doPatch(diffOptions, initialSchema, finalSchema)
+        fAll!!.close()
     }
 }

@@ -20,158 +20,72 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-public class Sequence extends DBObject {
+class Sequence(
+    name: String, var minValue: String, var maxValue: String,
+    var incrementBy: String, var isCycleFlag: Boolean, var isOrderFlag: Boolean,
+    var cacheSize: Int, var lastNumber: String
+) : DBObject(name) {
 
-    private int cacheSize;
-
-    private boolean cycleFlag;
-
-    private String incrementBy;
-
-    private String lastNumber;
-
-    private String maxValue;
-
-    private String minValue;
-
-    private boolean orderFlag;
-
-    public Sequence(String name, String minValue, String maxValue,
-                    String incrementBy, boolean cycleFlag, boolean orderFlag,
-                    int cacheSize, String lastNumber) {
-        super(name);
-        this.minValue = minValue;
-        this.maxValue = maxValue;
-        this.incrementBy = incrementBy;
-        this.cycleFlag = cycleFlag;
-        this.orderFlag = orderFlag;
-        this.cacheSize = cacheSize;
-        this.lastNumber = lastNumber;
+    fun dbEquals(dst: Sequence): Boolean {
+        return dst.minValue == minValue && dst.maxValue == maxValue && dst.incrementBy == incrementBy && dst.isCycleFlag == isCycleFlag && dst.isOrderFlag == isOrderFlag && dst.cacheSize == cacheSize
     }
 
-    public boolean dbEquals(Sequence dst) {
-        return dst.minValue.equals(minValue) && dst.maxValue.equals(maxValue)
-                && dst.incrementBy.equals(incrementBy)
-                && dst.cycleFlag == cycleFlag && dst.orderFlag == orderFlag
-                && dst.cacheSize == cacheSize;
-    }
+    override val typeName: String
+        get() = "SEQUENCE"
 
-    public int getCacheSize() {
-        return cacheSize;
-    }
-
-    public String getIncrementBy() {
-        return incrementBy;
-    }
-
-    public String getLastNumber() {
-        return lastNumber;
-    }
-
-    public String getMaxValue() {
-        return maxValue;
-    }
-
-    public String getMinValue() {
-        return minValue;
-    }
-
-    @Override
-    public String getTypeName() {
-        return "SEQUENCE";
-    }
-
-    public boolean isCycleFlag() {
-        return cycleFlag;
-    }
-
-    public boolean isOrderFlag() {
-        return orderFlag;
-    }
-
-    public String sqlCreate() {
-        String res = "create sequence " + getName() + "\nminvalue " + minValue
-                + "\n" + "maxvalue " + maxValue + "\n" + "start with "
-                + lastNumber + "\n" + "increment by " + incrementBy + "\n";
-        if (cacheSize == 0)
-            res += "nocache\n";
-        else
-            res += "cache " + cacheSize + "\n";
-        if (cycleFlag) {
-            res += "cycle\n";
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        var res = """
+             create sequence $name
+             minvalue $minValue
+             maxvalue $maxValue
+             start with $lastNumber
+             increment by $incrementBy
+             
+             """.trimIndent()
+        res += if (cacheSize == 0) "nocache\n" else "cache $cacheSize\n"
+        if (isCycleFlag) {
+            res += "cycle\n"
         }
-        if (orderFlag) {
-            res += "order\n";
+        if (isOrderFlag) {
+            res += "order\n"
         }
-        res += ";\n";
-        return res;
+        res += ";\n"
+        return res
     }
 
-    public void setCacheSize(int cacheSize) {
-        this.cacheSize = cacheSize;
-    }
-
-    public void setCycleFlag(boolean cycleFlag) {
-        this.cycleFlag = cycleFlag;
-    }
-
-    public void setIncrementBy(String incrementBy) {
-        this.incrementBy = incrementBy;
-    }
-
-    public void setLastNumber(String lastNumber) {
-        this.lastNumber = lastNumber;
-    }
-
-    public void setMaxValue(String maxValue) {
-        this.maxValue = maxValue;
-    }
-
-    public void setMinValue(String minValue) {
-        this.minValue = minValue;
-    }
-
-    public void setOrderFlag(boolean orderFlag) {
-        this.orderFlag = orderFlag;
-    }
-
-    public String sqlUpdate(DBObject dst) {
-        String res = "alter sequence " + getName() + "\n";
-        if (!((Sequence) dst).minValue.equals(minValue)) {
-            res += "minvalue " + ((Sequence) dst).minValue + "\n";
+    override fun sqlUpdate(diffOptions: DiffOptions, dst: DBObject): String {
+        var res = "alter sequence $name\n"
+        if ((dst as Sequence).minValue != minValue) {
+            res += "minvalue " + dst.minValue + "\n"
         }
-        if (!((Sequence) dst).maxValue.equals(maxValue)) {
-            res += "maxvalue " + ((Sequence) dst).maxValue + "\n";
+        if (dst.maxValue != maxValue) {
+            res += "maxvalue " + dst.maxValue + "\n"
         }
-        if (!((Sequence) dst).incrementBy.equals(incrementBy)) {
-            res += "increment by " + ((Sequence) dst).incrementBy + "\n";
+        if (dst.incrementBy != incrementBy) {
+            res += "increment by " + dst.incrementBy + "\n"
         }
-        if (((Sequence) dst).cacheSize != cacheSize) {
-            if (((Sequence) dst).cacheSize == 0)
-                res += "nocache\n";
-            else
-                res += "cache " + ((Sequence) dst).cacheSize + "\n";
+        if (dst.cacheSize != cacheSize) {
+            res += if (dst.cacheSize == 0) "nocache\n" else "cache " + dst.cacheSize + "\n"
         }
-        if (((Sequence) dst).cycleFlag != cycleFlag) {
-            if (((Sequence) dst).cycleFlag) {
-                res += "cycle\n";
+        if (dst.isCycleFlag != isCycleFlag) {
+            res += if (dst.isCycleFlag) {
+                "cycle\n"
             } else {
-                res += "nocycle\n";
+                "nocycle\n"
             }
         }
-        if (((Sequence) dst).orderFlag != orderFlag) {
-            if (((Sequence) dst).orderFlag) {
-                res += "order\n";
+        if (dst.isOrderFlag != isOrderFlag) {
+            res += if (dst.isOrderFlag) {
+                "order\n"
             } else {
-                res += "noorder\n";
+                "noorder\n"
             }
         }
-        res += ";\n";
-        return res;
-
+        res += ";\n"
+        return res
     }
-
 }

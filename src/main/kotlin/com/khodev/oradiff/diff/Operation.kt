@@ -20,9 +20,10 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.diff
 
-package com.khodev.oradiff.diff;
-
-public enum Operation {
-    CREATE, UPDATE, DROP
+enum class Operation {
+    CREATE,
+    UPDATE,
+    DROP
 }

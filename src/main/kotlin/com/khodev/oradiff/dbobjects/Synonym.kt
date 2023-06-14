@@ -20,32 +20,24 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-public class Synonym extends DBObject {
+class Synonym(val owner: String, name: String, val tableOwner: String, val tableName: String) : DBObject(name) {
 
-    public Synonym(String name) {
-        super(name);
+    fun dbEquals(dst: Synonym?): Boolean {
+        return false
     }
 
-    public boolean dbEquals(Synonym dst) {
-        return false;
+    override val typeName: String
+        get() = "SYNONYM"
+
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        return ""
     }
 
-    @Override
-    public String getTypeName() {
-        return "SYNONYM";
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return ""
     }
-
-    @Override
-    public String sqlCreate() {
-        return null;
-    }
-
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return null;
-    }
-
 }

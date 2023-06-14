@@ -20,108 +20,35 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-import java.util.Collection;
-import java.util.ArrayList;
+class Constraint(
+    name: String, val constraintType: String,
+    val searchCondition: String, val refUserName: String,
+    val refConstraintName: String, val deleteRule: String, val status: String,
+    val deferrable: String, val deferred: String, val validated: String,
+    val generated: String, parent: Table
+) : SubDBObject(name, parent) {
+    val columns: MutableCollection<IndexColumn> = ArrayList()
 
-public class Constraint extends SubDBObject {
-
-    private final Collection<IndexColumn> columns = new ArrayList<>();
-    private final String constraintType;
-    private final String deferrable;
-    private final String deferred;
-    private final String deleteRule;
-    private final String generated;
-    private final String refConstraintName;
-    private final String refUserName;
-    private final String searchCondition;
-    private final String status;
-    private final String validated;
-
-    public Constraint(String name, String constraintType,
-                      String searchCondition, String refUserName,
-                      String refConstraintName, String deleteRule, String status,
-                      String deferrable, String deferred, String validated,
-                      String generated, Table parent) {
-        super(name, parent);
-        this.constraintType = constraintType;
-        this.searchCondition = searchCondition;
-        this.refConstraintName = refConstraintName;
-        this.refUserName = refUserName;
-        this.deleteRule = deleteRule;
-        this.status = status;
-        this.deferrable = deferrable;
-        this.deferred = deferred;
-        this.validated = validated;
-        this.generated = generated;
+    fun dbEquals(index: Constraint?): Boolean {
+        return true
     }
 
-    public boolean dbEquals(Constraint index) {
-        return true;
+    override val typeName: String
+        get() = "CONSTRAINT"
+
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        return ""
     }
 
-    public Collection<IndexColumn> getColumns() {
-        return columns;
+    override fun sqlDrop(): String {
+        return "drop constraint $name;\n"
     }
 
-    public String getConstraintType() {
-        return constraintType;
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return sqlCreate(diffOptions)
     }
-
-    public String getDeferrable() {
-        return deferrable;
-    }
-
-    public String getDeferred() {
-        return deferred;
-    }
-
-    public String getDeleteRule() {
-        return deleteRule;
-    }
-
-    public String getGenerated() {
-        return generated;
-    }
-
-    public String getRefConstraintName() {
-        return refConstraintName;
-    }
-
-    public String getRefUserName() {
-        return refUserName;
-    }
-
-    public String getSearchCondition() {
-        return searchCondition;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    @Override
-    public String getTypeName() {
-        return "CONSTRAINT";
-    }
-
-    public String getValidated() {
-        return validated;
-    }
-
-    public String sqlCreate() {
-        return "";
-    }
-
-    public String sqlDrop() {
-        return "drop constraint " + getName() + ";\n";
-    }
-
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return sqlCreate();
-    }
-
 }

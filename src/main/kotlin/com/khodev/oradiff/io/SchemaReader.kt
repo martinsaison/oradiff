@@ -20,12 +20,10 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.io
 
-package com.khodev.oradiff.io;
+import com.khodev.oradiff.dbobjects.Schema
 
-import com.khodev.oradiff.dbobjects.Schema;
-
-public interface SchemaReader {
-
-    Schema get();
+interface SchemaReader {
+    fun get(): Schema
 }

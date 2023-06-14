@@ -20,72 +20,62 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.diff
 
-package com.khodev.oradiff.diff;
+import java.io.*
+import java.util.*
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.ArrayList;
-
-public class Equivalence {
-
+class Equivalence private constructor(line: String) {
     //	private String type;
-    private final ArrayList<String> names = new ArrayList<>();
-    private static ArrayList<Equivalence> equivalences = null;
+    private val names = ArrayList<String>()
 
-    private Equivalence(String line) {
-        String[] data = line.split(":");
-//		type = data[0];
-        String[] names = data[1].split(",");
-        Collections.addAll(this.names, names);
+    init {
+        val data = line.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        //		type = data[0];
+        val names = data[1].split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        Collections.addAll(this.names, *names)
     }
 
-    private static void loadEquivalences(String filename)
-            throws IOException {
-        equivalences = new ArrayList<>();
-        BufferedReader b;
-        String line;
-        File file = new File(filename);
-        if (file.exists()) {
-            b = new BufferedReader(new FileReader(filename));
-            while ((line = b.readLine()) != null) {
-                equivalences.add(new Equivalence(line));
+    private fun unitMatches(name1: String?, name2: String?): Boolean {
+        var found1 = false
+        var found2 = false
+        for (name in names) {
+            if (name1!!.uppercase(Locale.getDefault()) == name.uppercase(Locale.getDefault())) found1 = true
+            if (name2!!.uppercase(Locale.getDefault()) == name.uppercase(Locale.getDefault())) found2 = true
+        }
+        return found1 && found2
+    }
+
+    companion object {
+        private var equivalences: ArrayList<Equivalence>? = null
+        @Throws(IOException::class)
+        private fun loadEquivalences(filename: String) {
+            equivalences = ArrayList()
+            val b: BufferedReader
+            var line: String
+            val file = File(filename)
+            if (file.exists()) {
+                b = BufferedReader(FileReader(filename))
+                while (b.readLine().also { line = it } != null) {
+                    equivalences!!.add(Equivalence(line))
+                }
+                b.close()
             }
-            b.close();
+        }
+
+        @Throws(IOException::class)
+        private fun getEquivalences(): ArrayList<Equivalence>? {
+            if (equivalences == null) loadEquivalences("equivalences.txt")
+            return equivalences
+        }
+
+        @Throws(IOException::class)
+        fun matches(name1: String?, name2: String?): Boolean {
+            if (name1!!.uppercase(Locale.getDefault()) == name2!!.uppercase(Locale.getDefault())) return true
+            for (equivalence in getEquivalences()!!) {
+                if (equivalence.unitMatches(name1, name2)) return true
+            }
+            return false
         }
     }
-
-    private static ArrayList<Equivalence> getEquivalences()
-            throws IOException {
-        if (equivalences == null)
-            loadEquivalences("equivalences.txt");
-        return equivalences;
-    }
-
-    public static boolean matches(String name1, String name2)
-            throws IOException {
-        if (name1.toUpperCase().equals(name2.toUpperCase()))
-            return true;
-        for (Equivalence equivalence : getEquivalences()) {
-            if (equivalence.unitMatches(name1, name2))
-                return true;
-        }
-        return false;
-    }
-
-    private boolean unitMatches(String name1, String name2) {
-        boolean found1 = false;
-        boolean found2 = false;
-        for (String name : names) {
-            if (name1.toUpperCase().equals(name.toUpperCase()))
-                found1 = true;
-            if (name2.toUpperCase().equals(name.toUpperCase()))
-                found2 = true;
-        }
-        return found1 && found2;
-    }
-
 }

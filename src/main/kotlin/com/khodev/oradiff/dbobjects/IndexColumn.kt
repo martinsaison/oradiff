@@ -20,40 +20,20 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-public class IndexColumn extends SubDBObject {
+class IndexColumn(name: String, var position: Int) : DBObject(name) {
 
-    private int position;
+    override val typeName: String
+        get() = "COLUMN"
 
-    public IndexColumn(String name, int position) {
-        super(name, null);
-        this.position = position;
-
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        return ""
     }
 
-    public int getPosition() {
-        return position;
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return ""
     }
-
-    public void setPosition(int position) {
-        this.position = position;
-    }
-
-    @Override
-    public String getTypeName() {
-        return "COLUMN";
-    }
-
-    @Override
-    public String sqlCreate() {
-        return null;
-    }
-
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return null;
-    }
-
 }

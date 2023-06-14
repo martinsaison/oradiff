@@ -20,72 +20,42 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-public class Job extends DBObject {
+class Job(
+    name: String, private val what: String, private val nextdate: String, private val interval: String,
+    val broken: Boolean
+) : DBObject(name) {
 
-    private final boolean broken;
-    private final String interval;
-    private final String nextdate;
-    private final String what;
-
-    public Job(String name, String what, String nextdate, String interval,
-               boolean broken) {
-        super(name);
-        this.what = what;
-        this.nextdate = nextdate;
-        this.interval = interval;
-        this.broken = broken;
+    fun dbEquals(dst: Job): Boolean {
+        return what == dst.what && nextdate == dst.nextdate && interval == dst.interval
     }
 
-    public boolean dbEquals(Job dst) {
-        return what.equals(dst.getWhat()) && nextdate.equals(dst.getNextdate())
-                && interval.equals(dst.getInterval());
-    }
+    override val typeName: String
+        get() = "JOB"
 
-    public boolean getBroken() {
-        return broken;
-    }
-
-    private String getInterval() {
-        return interval;
-    }
-
-    private String getNextdate() {
-        return nextdate;
-    }
-
-    @Override
-    public String getTypeName() {
-        return "JOB";
-    }
-
-    private String getWhat() {
-        return what;
-    }
-
-    public String sqlCreate() {
-        String res = "		begin\n" + "		  " + "sys.dbms_job.submit(job => "
-                + getName() + ",\n" + "		                      " + "what => '"
-                + getWhat() + "',\n" + "		                      "
-                + "next_date => to_date('" + getNextdate()
-                + "', 'dd-mm-yyyy hh24:mi:ss'),\n"
-                + "		                      interval => '" + getInterval()
-                + "');\n";
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        var res = """		begin
+		  sys.dbms_job.submit(job => $name,
+		                      what => '${what}',
+		                      next_date => to_date('${nextdate}', 'dd-mm-yyyy hh24:mi:ss'),
+		                      interval => '${interval}');
+"""
         if (broken) {
-            res += "		  sys.dbms_job.broken(job => " + getName() + ",\n"
-                    + "		                      " + "broken => " + "true"
-                    + ",\n" + "		                      "
-                    + "next_date => to_date('" + getNextdate()
-                    + "', 'dd-mm-yyyy hh24:mi:ss'));\n";
+            res += """		  sys.dbms_job.broken(job => $name,
+		                      broken => true,
+		                      next_date => to_date('${nextdate}', 'dd-mm-yyyy hh24:mi:ss'));
+"""
         }
-        res += "		  commit;\n" + "		end;\n";
-        return res;
+        res += """		  commit;
+		end;
+"""
+        return res
     }
 
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return destination.sqlCreate();
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return destination.sqlCreate(diffOptions)
     }
 }

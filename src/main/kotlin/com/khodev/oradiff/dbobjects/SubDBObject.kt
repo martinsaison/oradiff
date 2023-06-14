@@ -20,26 +20,6 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
-
-import com.khodev.oradiff.dbobjects.DBObject;
-import com.khodev.oradiff.dbobjects.Table;
-
-public abstract class SubDBObject extends DBObject {
-
-    Table getParent() {
-        return parent;
-    }
-
-    public void setParent(Table parent) {
-        this.parent = parent;
-    }
-
-    private Table parent;
-
-    SubDBObject(String name, Table parent) {
-        super(name);
-        this.parent = parent;
-    }
-}
+abstract class SubDBObject internal constructor(name: String, var parent: Table) : DBObject(name)

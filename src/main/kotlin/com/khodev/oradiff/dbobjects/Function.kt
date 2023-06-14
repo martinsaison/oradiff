@@ -20,18 +20,9 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
-
-public class Function extends Source {
-
-    public Function(String name) {
-        super(name);
-    }
-
-    @Override
-    public String getTypeName() {
-        return "FUNCTION";
-    }
-
+class Function(name: String) : Source(name) {
+    override val typeName: String
+        get() = "FUNCTION"
 }

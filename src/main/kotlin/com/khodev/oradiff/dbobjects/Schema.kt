@@ -20,426 +20,313 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DBObjectDiff
+import com.khodev.oradiff.diff.DiffOptions
+import com.khodev.oradiff.diff.Equivalence
+import java.io.IOException
+import java.util.*
 
-import com.khodev.oradiff.diff.DBObjectDiff;
-import com.khodev.oradiff.diff.Equivalence;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Hashtable;
-
-public class Schema {
-
-    private Hashtable<String, Function> dbFunctions = new Hashtable<>();
-
-    private Hashtable<String, Job> dbJobs = new Hashtable<>();
-
-    private Hashtable<String, DBPackage> dbPackages = new Hashtable<>();
-
-    private Hashtable<String, Procedure> dbProcedures = new Hashtable<>();
-
-    private Hashtable<String, Sequence> dbSequences = new Hashtable<>();
-
-    private Hashtable<String, Synonym> dbSynonyms = new Hashtable<>();
-
-    public Hashtable<String, Function> getDbFunctions() {
-        return dbFunctions;
-    }
-
-    public Hashtable<String, Job> getDbJobs() {
-        return dbJobs;
-    }
-
-    public Hashtable<String, DBPackage> getDbPackages() {
-        return dbPackages;
-    }
-
-    public Hashtable<String, Procedure> getDbProcedures() {
-        return dbProcedures;
-    }
-
-    public Hashtable<String, Sequence> getDbSequences() {
-        return dbSequences;
-    }
-
-    public Hashtable<String, Synonym> getDbSynonyms() {
-        return dbSynonyms;
-    }
-
-    public Hashtable<String, Table> getDbTables() {
-        return dbTables;
-    }
-
-    public Hashtable<String, Trigger> getDbTriggers() {
-        return dbTriggers;
-    }
-
-    public Hashtable<String, View> getDbViews() {
-        return dbViews;
-    }
-
-    public void setDbFunctions(Hashtable<String, Function> dbFunctions) {
-        this.dbFunctions = dbFunctions;
-    }
-
-    public void setDbJobs(Hashtable<String, Job> dbJobs) {
-        this.dbJobs = dbJobs;
-    }
-
-    public void setDbPackages(Hashtable<String, DBPackage> dbPackages) {
-        this.dbPackages = dbPackages;
-    }
-
-    public void setDbProcedures(Hashtable<String, Procedure> dbProcedures) {
-        this.dbProcedures = dbProcedures;
-    }
-
-    public void setDbSequences(Hashtable<String, Sequence> dbSequences) {
-        this.dbSequences = dbSequences;
-    }
-
-    public void setDbSynonyms(Hashtable<String, Synonym> dbSynonyms) {
-        this.dbSynonyms = dbSynonyms;
-    }
-
-    public void setDbTables(Hashtable<String, Table> dbTables) {
-        this.dbTables = dbTables;
-    }
-
-    public void setDbTriggers(Hashtable<String, Trigger> dbTriggers) {
-        this.dbTriggers = dbTriggers;
-    }
-
-    public void setDbViews(Hashtable<String, View> dbViews) {
-        this.dbViews = dbViews;
-    }
-
-    private Hashtable<String, Table> dbTables = new Hashtable<>();
-
-    private Hashtable<String, Trigger> dbTriggers = new Hashtable<>();
-
-    private Hashtable<String, View> dbViews = new Hashtable<>();
-
-    public Source createNewDBSource(String name, String type) {
-        switch (type) {
-            case "PACKAGE":
-            case "PACKAGE BODY":
-                return addPackage(new DBPackage(name));
-            case "FUNCTION":
-                return addFunction(new Function(name));
-            case "PROCEDURE":
-                return addProcedure(new Procedure(name));
+class Schema {
+    var dbFunctions = Hashtable<String, Function>()
+    var dbJobs = Hashtable<String, Job>()
+    var dbPackages = Hashtable<String, DBPackage>()
+    var dbProcedures = Hashtable<String, Procedure>()
+    var dbSequences = Hashtable<String, Sequence>()
+    var dbSynonyms = Hashtable<String, Synonym>()
+    var dbTables = Hashtable<String, Table>()
+    var dbTriggers = Hashtable<String, Trigger>()
+    var dbViews = Hashtable<String, View>()
+    fun createNewDBSource(name: String, type: String?): Source? {
+        when (type) {
+            "PACKAGE", "PACKAGE BODY" -> return addPackage(DBPackage(name))
+            "FUNCTION" -> return addFunction(Function(name))
+            "PROCEDURE" -> return addProcedure(Procedure(name))
         }
-        return null;
+        return null
     }
 
-    private Function addFunction(Function o) {
-        dbFunctions.put(o.getName(), o);
-        return o;
+    private fun addFunction(o: Function): Function {
+        dbFunctions[o.name] = o
+        return o
     }
 
-    private Function getFunctionByName(String name) {
-        return dbFunctions.get(name);
+    private fun getFunctionByName(name: String?): Function? {
+        return dbFunctions[name]
     }
 
-    public Job addJob(Job o) {
-        dbJobs.put(o.getName(), o);
-        return o;
+    fun addJob(o: Job): Job {
+        dbJobs[o.name] = o
+        return o
     }
 
-    private Job getJobByName(String name) {
-        return dbJobs.get(name);
+    private fun getJobByName(name: String?): Job? {
+        return dbJobs[name]
     }
 
-    private DBPackage addPackage(DBPackage o) {
-        dbPackages.put(o.getName(), o);
-        return o;
+    private fun addPackage(o: DBPackage): DBPackage {
+        dbPackages[o.name] = o
+        return o
     }
 
-    private DBPackage getPackageByName(String name) {
-        return dbPackages.get(name);
+    private fun getPackageByName(name: String?): DBPackage? {
+        return dbPackages[name]
     }
 
-    private Procedure addProcedure(Procedure o) {
-        dbProcedures.put(o.getName(), o);
-        return o;
+    private fun addProcedure(o: Procedure): Procedure {
+        dbProcedures[o.name] = o
+        return o
     }
 
-    private Procedure getProcedureByName(String name) {
-        return dbProcedures.get(name);
+    private fun getProcedureByName(name: String?): Procedure? {
+        return dbProcedures[name]
     }
 
-    public Sequence addSequence(Sequence o) {
-        dbSequences.put(o.getName(), o);
-        return o;
+    fun addSequence(o: Sequence): Sequence {
+        dbSequences[o.name] = o
+        return o
     }
 
-    private Sequence getSequenceByName(String name) {
-        return dbSequences.get(name);
+    private fun getSequenceByName(name: String?): Sequence? {
+        return dbSequences[name]
     }
 
-    private Synonym addSynonym(Synonym o) {
-        dbSynonyms.put(o.getName(), o);
-        return o;
+    fun addSynonym(o: Synonym): Synonym {
+        dbSynonyms[o.name] = o
+        return o
     }
 
-    private Synonym getSynonymByName(String name) {
-        return dbSynonyms.get(name);
+    private fun getSynonymByName(name: String?): Synonym? {
+        return dbSynonyms[name]
     }
 
-    public Table addTable(Table o) {
-        dbTables.put(o.getName(), o);
-        return o;
+    fun addTable(o: Table): Table {
+        dbTables[o.name] = o
+        return o
     }
 
-    public Table getTableByName(String name) {
-        return dbTables.get(name);
+    fun getTableByName(name: String?): Table? {
+        return dbTables[name]
     }
 
-    private Column getColumnByName(String tableName, String columnName) {
-        Table table = getTableByName(tableName);
-        if (table == null)
-            return null;
-        return table.getColumnByName(columnName);
+    private fun getColumnByName(tableName: String, columnName: String): Column? {
+        val table = getTableByName(tableName) ?: return null
+        return table.getColumnByName(columnName)
     }
 
-    public Trigger addTrigger(Trigger o) {
-        dbTriggers.put(o.getName(), o);
-        return o;
+    fun addTrigger(o: Trigger): Trigger {
+        dbTriggers[o.name] = o
+        return o
     }
 
-    private Trigger getTriggerByName(String name) {
-        return dbTriggers.get(name);
+    private fun getTriggerByName(name: String?): Trigger? {
+        return dbTriggers[name]
     }
 
-    public View addView(View o) {
-        dbViews.put(o.getName(), o);
-        return o;
+    fun addView(o: View): View {
+        dbViews[o.name] = o
+        return o
     }
 
-    private View getViewByName(String name) {
-        return dbViews.get(name);
+    private fun getViewByName(name: String?): View? {
+        return dbViews[name]
     }
 
-    public static <T extends DBObject> void cleanObjectsWithFilter(
-            String filter, Hashtable<String, T> objects) {
-        if (filter == null)
-            return;
-        ArrayList<String> trash = new ArrayList<>();
-        for (String key : objects.keySet()) {
-            DBObject dbo = objects.get(key);
-            if (!dbo.getName().toLowerCase().matches((filter.toLowerCase())))
-                trash.add(key);
+    fun newFunctions(destination: Schema?): ArrayList<Function> {
+        val res = ArrayList<Function>()
+        for (dst in destination!!.dbFunctions.values) {
+            if (getFunctionByName(dst.name) == null) res.add(dst)
         }
-        for (String key : trash)
-            objects.remove(key);
+        return res
     }
 
-    public ArrayList<Function> newFunctions(Schema destination) {
-        ArrayList<Function> res = new ArrayList<>();
-        for (Function dst : destination.dbFunctions.values()) {
-            if (getFunctionByName(dst.getName()) == null)
-                res.add(dst);
+    fun newJobs(destination: Schema?): ArrayList<Job> {
+        val res = ArrayList<Job>()
+        for (dst in destination!!.dbJobs.values) {
+            if (getJobByName(dst.name) == null) res.add(dst)
         }
-        return res;
+        return res
     }
 
-    public ArrayList<Job> newJobs(Schema destination) {
-        ArrayList<Job> res = new ArrayList<>();
-        for (Job dst : destination.dbJobs.values()) {
-            if (getJobByName(dst.getName()) == null)
-                res.add(dst);
+    fun newPackages(destination: Schema?): ArrayList<DBPackage> {
+        val res = ArrayList<DBPackage>()
+        for (dst in destination!!.dbPackages.values) {
+            if (getPackageByName(dst.name) == null) res.add(dst)
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBPackage> newPackages(Schema destination) {
-        ArrayList<DBPackage> res = new ArrayList<>();
-        for (DBPackage dst : destination.dbPackages.values()) {
-            if (getPackageByName(dst.getName()) == null)
-                res.add(dst);
+    fun newProcedures(destination: Schema?): ArrayList<Procedure> {
+        val res = ArrayList<Procedure>()
+        for (dst in destination!!.dbProcedures.values) {
+            if (getProcedureByName(dst.name) == null) res.add(dst)
         }
-        return res;
+        return res
     }
 
-    public ArrayList<Procedure> newProcedures(Schema destination) {
-        ArrayList<Procedure> res = new ArrayList<>();
-        for (Procedure dst : destination.dbProcedures.values()) {
-            if (getProcedureByName(dst.getName()) == null)
-                res.add(dst);
+    fun newSequences(destination: Schema?): ArrayList<Sequence> {
+        val res = ArrayList<Sequence>()
+        for (dst in destination!!.dbSequences.values) {
+            if (getSequenceByName(dst.name) == null) res.add(dst)
         }
-        return res;
+        return res
     }
 
-    public ArrayList<Sequence> newSequences(Schema destination) {
-        ArrayList<Sequence> res = new ArrayList<>();
-        for (Sequence dst : destination.dbSequences.values()) {
-            if (getSequenceByName(dst.getName()) == null)
-                res.add(dst);
+    fun newSynonyms(destination: Schema?): ArrayList<Synonym> {
+        val res = ArrayList<Synonym>()
+        for (dst in destination!!.dbSynonyms.values) {
+            if (getSynonymByName(dst.name) == null) res.add(dst)
         }
-        return res;
-    }
-
-    public ArrayList<Synonym> newSynonyms(Schema destination) {
-        ArrayList<Synonym> res = new ArrayList<>();
-        for (Synonym dst : destination.dbSynonyms.values()) {
-            if (getSynonymByName(dst.getName()) == null)
-                res.add(dst);
-        }
-        return res;
+        return res
     }
 
     // returns tables which are in destination schema but not in current schema
-    public ArrayList<Table> newTables(Schema destination) throws IOException {
-        ArrayList<Table> res = new ArrayList<>();
-        for (Table dst : destination.dbTables.values()) {
-            boolean existsHere = false;
-            for (Table src : dbTables.values()) {
-                if (Equivalence.matches(src.getName(), dst.getName())) {
-                    existsHere = true;
-                    break;
+    @Throws(IOException::class)
+    fun newTables(destination: Schema?): ArrayList<Table> {
+        val res = ArrayList<Table>()
+        for (dst in destination!!.dbTables.values) {
+            var existsHere = false
+            for (src in dbTables.values) {
+                if (Equivalence.Companion.matches(src.name, dst.name)) {
+                    existsHere = true
+                    break
                 }
             }
-            if (!existsHere)
-                res.add(dst);
+            if (!existsHere) res.add(dst)
         }
-        return res;
+        return res
     }
 
-    public ArrayList<Trigger> newTriggers(Schema destination) {
-        ArrayList<Trigger> res = new ArrayList<>();
-        for (Trigger dst : destination.dbTriggers.values()) {
-            if (getTriggerByName(dst.getName()) == null)
-                res.add(dst);
+    fun newTriggers(destination: Schema?): ArrayList<Trigger> {
+        val res = ArrayList<Trigger>()
+        for (dst in destination!!.dbTriggers.values) {
+            if (getTriggerByName(dst.name) == null) res.add(dst)
         }
-        return res;
+        return res
     }
 
-    public ArrayList<View> newViews(Schema destination) {
-        ArrayList<View> res = new ArrayList<>();
-        for (View dst : destination.dbViews.values()) {
-            if (getViewByName(dst.getName()) == null)
-                res.add(dst);
+    fun newViews(destination: Schema?): ArrayList<View> {
+        val res = ArrayList<View>()
+        for (dst in destination!!.dbViews.values) {
+            if (getViewByName(dst.name) == null) res.add(dst)
         }
-        return res;
+        return res
     }
 
-    public String tablesChanges(Schema destination) {
-        String res = "";
+    fun tablesChanges(diffOptions: DiffOptions, destination: Schema): String {
+        var res = ""
         // common tables
-        for (Table dst : destination.dbTables.values()) {
+        for (dst in destination.dbTables.values) {
             // research in current table
-            Table src = getTableByName(dst.getName());
-            if (src != null)
-                res += src.sqlUpdate(dst);
+            val src = getTableByName(dst.name)
+            if (src != null) res += src.sqlUpdate(diffOptions, dst)
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<Function>> updateFunctions(Schema destination) {
-        ArrayList<DBObjectDiff<Function>> res = new ArrayList<>();
-        for (Function dst : destination.dbFunctions.values()) {
-            Function src = getFunctionByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+    fun updateFunctions(diffOptions: DiffOptions, destination: Schema?): ArrayList<DBObjectDiff<Function>> {
+        val res = ArrayList<DBObjectDiff<Function>>()
+        for (dst in destination!!.dbFunctions.values) {
+            val src = getFunctionByName(dst.name)
+            if (src != null) if (!src.dbEquals(diffOptions, dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<Job>> updateJobs(Schema destination) {
-        ArrayList<DBObjectDiff<Job>> res = new ArrayList<>();
-        for (Job dst : destination.dbJobs.values()) {
-            Job src = getJobByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+    fun updateJobs(destination: Schema?): ArrayList<DBObjectDiff<Job>> {
+        val res = ArrayList<DBObjectDiff<Job>>()
+        for (dst in destination!!.dbJobs.values) {
+            val src = getJobByName(dst.name)
+            if (src != null) if (!src.dbEquals(dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<DBPackage>> updatePackages(Schema destination) {
-        ArrayList<DBObjectDiff<DBPackage>> res = new ArrayList<>();
-        for (DBPackage dst : destination.dbPackages.values()) {
+    fun updatePackages(diffOptions: DiffOptions, destination: Schema?): ArrayList<DBObjectDiff<DBPackage>> {
+        val res = ArrayList<DBObjectDiff<DBPackage>>()
+        for (dst in destination!!.dbPackages.values) {
             // research in current table
-            DBPackage src = getPackageByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+            val src = getPackageByName(dst.name)
+            if (src != null) if (!src.dbEquals(diffOptions, dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<Procedure>> updateProcedures(Schema destination) {
-        ArrayList<DBObjectDiff<Procedure>> res = new ArrayList<>();
-        for (Procedure dst : destination.dbProcedures.values()) {
-            Procedure src = getProcedureByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+    fun updateProcedures(diffOptions: DiffOptions, destination: Schema?): ArrayList<DBObjectDiff<Procedure>> {
+        val res = ArrayList<DBObjectDiff<Procedure>>()
+        for (dst in destination!!.dbProcedures.values) {
+            val src = getProcedureByName(dst.name)
+            if (src != null) if (!src.dbEquals(diffOptions, dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<Sequence>> updateSequences(Schema destination) {
-        ArrayList<DBObjectDiff<Sequence>> res = new ArrayList<>();
-        for (Sequence dst : destination.dbSequences.values()) {
-            Sequence src = getSequenceByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+    fun updateSequences(destination: Schema?): ArrayList<DBObjectDiff<Sequence>> {
+        val res = ArrayList<DBObjectDiff<Sequence>>()
+        for (dst in destination!!.dbSequences.values) {
+            val src = getSequenceByName(dst.name)
+            if (src != null) if (!src.dbEquals(dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<Synonym>> updateSynonyms(Schema destination) {
-        ArrayList<DBObjectDiff<Synonym>> res = new ArrayList<>();
-        for (Synonym dst : destination.dbSynonyms.values()) {
-            Synonym src = getSynonymByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+    fun updateSynonyms(destination: Schema?): ArrayList<DBObjectDiff<Synonym>> {
+        val res = ArrayList<DBObjectDiff<Synonym>>()
+        for (dst in destination!!.dbSynonyms.values) {
+            val src = getSynonymByName(dst.name)
+            if (src != null) if (!src.dbEquals(dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<Table>> updateTables(Schema destination)
-            throws IOException {
-        ArrayList<DBObjectDiff<Table>> res = new ArrayList<>();
-        for (Table dst : destination.dbTables.values()) {
+    @Throws(IOException::class)
+    fun updateTables(diffOptions: DiffOptions, destination: Schema?): ArrayList<DBObjectDiff<Table>> {
+        val res = ArrayList<DBObjectDiff<Table>>()
+        for (dst in destination!!.dbTables.values) {
             // boolean existsHere = false;
-            for (Table src : dbTables.values()) {
-                if (Equivalence.matches(src.getName(), dst.getName())) {
+            for (src in dbTables.values) {
+                if (Equivalence.matches(src.name, dst.name)) {
                     // existsHere = true;
-                    if (!src.dbEquals(dst)) // exists and changed
-                        res.add(new DBObjectDiff<>(src, dst));
+                    if (!src.dbEquals(diffOptions, dst)) // exists and changed
+                        res.add(DBObjectDiff(src, dst))
                 }
             }
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<Trigger>> updateTriggers(Schema destination) {
-        ArrayList<DBObjectDiff<Trigger>> res = new ArrayList<>();
-        for (Trigger dst : destination.dbTriggers.values()) {
-            Trigger src = getTriggerByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+    fun updateTriggers(destination: Schema?): ArrayList<DBObjectDiff<Trigger>> {
+        val res = ArrayList<DBObjectDiff<Trigger>>()
+        for (dst in destination!!.dbTriggers.values) {
+            val src = getTriggerByName(dst.name)
+            if (src != null) if (!src.dbEquals(dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
     }
 
-    public ArrayList<DBObjectDiff<View>> updateViews(Schema destination) {
-        ArrayList<DBObjectDiff<View>> res = new ArrayList<>();
-        for (View dst : destination.dbViews.values()) {
-            View src = getViewByName(dst.getName());
-            if (src != null)
-                if (!src.dbEquals(dst))
-                    res.add(new DBObjectDiff<>(src, dst));
+    fun updateViews(destination: Schema?): ArrayList<DBObjectDiff<View>> {
+        val res = ArrayList<DBObjectDiff<View>>()
+        for (dst in destination!!.dbViews.values) {
+            val src = getViewByName(dst.name)
+            if (src != null) if (!src.dbEquals(dst)) res.add(DBObjectDiff(src, dst))
         }
-        return res;
+        return res
+    }
+
+    companion object {
+        fun <T : DBObject> cleanObjectsWithFilter(
+            filter: String?, objects: Hashtable<String, T>
+        ) {
+            if (filter == null) return
+            val trash = ArrayList<String?>()
+            for (key in objects.keys) {
+                val dbo: DBObject = objects[key] as DBObject
+                if (!dbo.name.lowercase(Locale.getDefault())
+                        .matches(filter.lowercase(Locale.getDefault()).toRegex())
+                ) trash.add(key)
+            }
+            for (key in trash) objects.remove(key)
+        }
     }
 }

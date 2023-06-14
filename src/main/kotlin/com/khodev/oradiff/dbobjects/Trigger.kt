@@ -20,106 +20,49 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-public class Trigger extends DBObject {
+class Trigger(
+    name: String, var type: String, var event: String, var table: String,
+    var `when`: String, var status: String, description: String, body: String
+) : DBObject(name) {
+    var body: String
+    var description: String
 
-    private String body;
-    private String description;
-    private String event;
-    private String status;
-    private String table;
-    private String type;
-    private String when;
-
-    public String getBody() {
-        return body;
+    init {
+        this.description = DBObject.Companion.removeR4(description)
+        this.body = DBObject.Companion.removeR4(body)
     }
 
-    public void setBody(String body) {
-        this.body = body;
+    fun dbEquals(dst: Trigger): Boolean {
+        return DBObject.Companion.textForDiff(dst.description) == DBObject.Companion.textForDiff(description) && DBObject.Companion.textForDiff(
+            dst.body
+        ) == DBObject.Companion.textForDiff(body)
     }
 
-    public String getDescription() {
-        return description;
+    override val typeName: String
+        get() = "TRIGGER"
+
+    private fun sanitizeTriggerDescription(description: String): String {
+        // "C4S01_DEVS"."TRG_ARTUC_FOUCEATRC" -> TRG_ARTUC_FOUCEATRC
+        return description
+            .replace(""""[A-Za-z0-9_]+"\."([A-Za-z0-9_]+)"""".toRegex(), "$1")
+            .replace("""[A-Za-z0-9_]+\.([A-Za-z0-9_]+)""".toRegex(), "$1")
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        return """
+            CREATE OR REPLACE TRIGGER ${sanitizeTriggerDescription(description)}
+            $body
+            /
+            
+            """.trimIndent()
     }
 
-    public String getEvent() {
-        return event;
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return destination.sqlCreate(diffOptions)
     }
-
-    public void setEvent(String event) {
-        this.event = event;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getTable() {
-        return table;
-    }
-
-    public void setTable(String table) {
-        this.table = table;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getWhen() {
-        return when;
-    }
-
-    public void setWhen(String when) {
-        this.when = when;
-    }
-
-    public Trigger(String name, String type, String event, String table,
-                   String when, String status, String description, String body) {
-        super(name);
-        this.type = type;
-        this.event = event;
-        this.table = table;
-        this.when = when;
-        this.status = status;
-        this.description = removeR4(description);
-        this.body = removeR4(body);
-    }
-
-    public boolean dbEquals(Trigger dst) {
-        return textForDiff(dst.description).equals(textForDiff(description))
-                && textForDiff(dst.body).equals(textForDiff(body));
-    }
-
-    @Override
-    public String getTypeName() {
-        return "TRIGGER";
-    }
-
-    @Override
-    public String sqlCreate() {
-        return "CREATE OR REPLACE TRIGGER " + description + "\n" + body
-                + "\n/\n";
-    }
-
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return destination.sqlCreate();
-    }
-
 }

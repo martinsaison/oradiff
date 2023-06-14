@@ -20,13 +20,10 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.util
 
-package com.khodev.oradiff.util;
-
-public class Configuration {
-
-    public static boolean createOldNew = false;
-    public static boolean renameFolderIfExists = false;
-    public static boolean saveNewSubstitutes = true;
-
+object Configuration {
+    var createOldNew = false
+    var renameFolderIfExists = false
+    var saveNewSubstitutes = true
 }

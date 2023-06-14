@@ -20,160 +20,219 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.diff
 
-package com.khodev.oradiff.diff;
+import com.khodev.oradiff.dbobjects.*
+import java.io.IOException
 
-import com.khodev.oradiff.dbobjects.*;
-import java.io.IOException;
-import java.util.ArrayList;
-
-public class DiffManager {
-
-    private final ArrayList<DiffListener> diffListeners = new ArrayList<>();
-
-    public void addDiffListener(DiffListener diffListener) {
-        diffListeners.add(diffListener);
+class DiffManager {
+    private val diffListeners = ArrayList<DiffListener>()
+    fun addDiffListener(diffListener: DiffListener) {
+        diffListeners.add(diffListener)
     }
 
-    public void removeDiffListener(DiffListener diffListener) {
-        diffListeners.remove(diffListener);
+    fun removeDiffListener(diffListener: DiffListener) {
+        diffListeners.remove(diffListener)
     }
 
-    private <T extends DBObject> void doDiff(Operation diffType, ObjectType diffObject,
-                                             String name, DBObjectDiff<T> diff) {
-        for (DiffListener diffListener : diffListeners)
-            diffListener.diffPerformed(diffType, diffObject, name, diff);
+    private fun <T : DBObject?> doDiff(
+        diffOptions: DiffOptions,
+        diffType: Operation, diffObject: ObjectType,
+        name: String, diff: DBObjectDiff<T>
+    ) {
+        for (diffListener in diffListeners) diffListener.diffPerformed(diffOptions, diffType, diffObject, name, diff)
     }
 
-    public void doPatch(Schema initialSchema, Schema finalSchema)
-            throws IOException {
+    @Throws(IOException::class)
+    fun doPatch(diffOptions: DiffOptions, initialSchema: Schema?, finalSchema: Schema?) {
         // Tables
-        for (Table o : initialSchema.newTables(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.TABLE, o.getName(),
-                    new DBObjectDiff<>(null, o));
-            for (PublicSynonym s : o.getPublicSynonyms()) {
-                doDiff(Operation.CREATE, ObjectType.PUBLIC_SYNONYM, s.getName(),
-                        new DBObjectDiff<>(null, s));
+        for (o in initialSchema!!.newTables(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.CREATE, ObjectType.TABLE, o.name,
+                DBObjectDiff(null, o)
+            )
+            for (s in o.publicSynonyms) {
+                doDiff(
+                    diffOptions,
+                    Operation.CREATE, ObjectType.PUBLIC_SYNONYM, s.name,
+                    DBObjectDiff(null, s)
+                )
             }
         }
-        for (DBObjectDiff<Table> d : initialSchema.updateTables(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.TABLE, d.getName(), d);
+        for (d in initialSchema.updateTables(diffOptions, finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.TABLE, d.name, d)
         }
-        for (Table o : finalSchema.newTables(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.TABLE, o.getName(), new DBObjectDiff<>(
-                    o, null));
-            for (PublicSynonym s : o.getPublicSynonyms()) {
-                doDiff(Operation.DROP, ObjectType.PUBLIC_SYNONYM, s.getName(),
-                        new DBObjectDiff<>(s, null));
+        for (o in finalSchema!!.newTables(initialSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.DROP, ObjectType.TABLE, o.name, DBObjectDiff(
+                    o, null
+                )
+            )
+            for (s in o.publicSynonyms) {
+                doDiff(
+                    diffOptions,
+                    Operation.DROP, ObjectType.PUBLIC_SYNONYM, s.name,
+                    DBObjectDiff(s, null)
+                )
             }
         }
         // Packages
-        for (DBPackage o : initialSchema.newPackages(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.PACKAGE, o.getName(),
-                    new DBObjectDiff<>(null, o));
+        for (o in initialSchema.newPackages(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.CREATE, ObjectType.PACKAGE, o.name,
+                DBObjectDiff(null, o)
+            )
         }
-        for (DBObjectDiff<DBPackage> d : initialSchema
-                .updatePackages(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.PACKAGE, d.getName(), d);
+        for (d in initialSchema
+            .updatePackages(diffOptions, finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.PACKAGE, d.name, d)
         }
-        for (DBPackage o : finalSchema.newPackages(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.PACKAGE, o.getName(),
-                    new DBObjectDiff<>(o, null));
+        for (o in finalSchema.newPackages(initialSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.DROP, ObjectType.PACKAGE, o.name,
+                DBObjectDiff(o, null)
+            )
         }
         // Procedures
-        for (Procedure o : initialSchema.newProcedures(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.PROCEDURE, o.getName(),
-                    new DBObjectDiff<>(null, o));
+        for (o in initialSchema.newProcedures(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.CREATE, ObjectType.PROCEDURE, o.name,
+                DBObjectDiff(null, o)
+            )
         }
-        for (DBObjectDiff<Procedure> d : initialSchema
-                .updateProcedures(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.PROCEDURE, d.getName(), d);
+        for (d in initialSchema
+            .updateProcedures(diffOptions, finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.PROCEDURE, d.name, d)
         }
-        for (Procedure o : finalSchema.newProcedures(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.PROCEDURE, o.getName(),
-                    new DBObjectDiff<>(o, null));
+        for (o in finalSchema.newProcedures(initialSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.DROP, ObjectType.PROCEDURE, o.name,
+                DBObjectDiff(o, null)
+            )
         }
         // Functions
-        for (Function o : initialSchema.newFunctions(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.FUNCTION, o.getName(),
-                    new DBObjectDiff<>(null, o));
+        for (o in initialSchema.newFunctions(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.CREATE, ObjectType.FUNCTION, o.name,
+                DBObjectDiff(null, o)
+            )
         }
-        for (DBObjectDiff<Function> d : initialSchema
-                .updateFunctions(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.FUNCTION, d.getName(), d);
+        for (d in initialSchema
+            .updateFunctions(diffOptions, finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.FUNCTION, d.name, d)
         }
-        for (Function o : finalSchema.newFunctions(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.FUNCTION, o.getName(),
-                    new DBObjectDiff<>(o, null));
+        for (o in finalSchema.newFunctions(initialSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.DROP, ObjectType.FUNCTION, o.name,
+                DBObjectDiff(o, null)
+            )
         }
 
         // Jobs
-
-        for (Job o : initialSchema.newJobs(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.JOB, o.getName(), new DBObjectDiff<>(null,
-                    o));
+        for (o in initialSchema.newJobs(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.CREATE, ObjectType.JOB, o.name, DBObjectDiff(
+                    null,
+                    o
+                )
+            )
         }
-        for (DBObjectDiff<Job> d :
-                initialSchema.updateJobs(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.JOB,
-                    d.getName(), d);
+        for (d in initialSchema.updateJobs(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.UPDATE, ObjectType.JOB,
+                d.name, d
+            )
         }
-        for (Job o :
-                finalSchema.newJobs(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.JOB,
-                    o.getName(), new DBObjectDiff<>(o, null));
+        for (o in finalSchema.newJobs(initialSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.DROP, ObjectType.JOB,
+                o.name, DBObjectDiff(o, null)
+            )
         }
 
         // Sequences
-        for (Sequence o : initialSchema.newSequences(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.SEQUENCE, o.getName(),
-                    new DBObjectDiff<>(null, o));
+        for (o in initialSchema.newSequences(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.CREATE, ObjectType.SEQUENCE, o.name,
+                DBObjectDiff(null, o)
+            )
         }
-        for (DBObjectDiff<Sequence> d : initialSchema
-                .updateSequences(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.SEQUENCE, d.getName(), d);
+        for (d in initialSchema
+            .updateSequences(finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.SEQUENCE, d.name, d)
         }
-        for (Sequence o : finalSchema.newSequences(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.SEQUENCE, o.getName(),
-                    new DBObjectDiff<>(o, null));
+        for (o in finalSchema.newSequences(initialSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.DROP, ObjectType.SEQUENCE, o.name,
+                DBObjectDiff(o, null)
+            )
         }
         // Triggers
-        for (Trigger o : initialSchema.newTriggers(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.TRIGGER, o.getName(),
-                    new DBObjectDiff<>(null, o));
+        for (o in initialSchema.newTriggers(finalSchema)) {
+            doDiff(
+                diffOptions,
+                Operation.CREATE, ObjectType.TRIGGER, o.name,
+                DBObjectDiff(null, o)
+            )
         }
-        for (DBObjectDiff<Trigger> d : initialSchema
-                .updateTriggers(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.TRIGGER, d.getName(), d);
+        for (d in initialSchema
+            .updateTriggers(finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.TRIGGER, d.name, d)
         }
-        for (Trigger o : finalSchema.newTriggers(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.TRIGGER, o.getName(),
-                    new DBObjectDiff<>(o, null));
+        for (o in finalSchema.newTriggers(initialSchema)) {
+            doDiff(
+                diffOptions, Operation.DROP, ObjectType.TRIGGER, o.name,
+                DBObjectDiff(o, null)
+            )
         }
         // Synonyms
-        for (Synonym o : initialSchema.newSynonyms(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.SYNONYM, o.getName(),
-                    new DBObjectDiff<>(null, o));
+        for (o in initialSchema.newSynonyms(finalSchema)) {
+            doDiff(
+                diffOptions, Operation.CREATE, ObjectType.SYNONYM, o.name,
+                DBObjectDiff(null, o)
+            )
         }
-        for (DBObjectDiff<Synonym> d : initialSchema
-                .updateSynonyms(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.SYNONYM, d.getName(), d);
+        for (d in initialSchema
+            .updateSynonyms(finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.SYNONYM, d.name, d)
         }
-        for (Synonym o : finalSchema.newSynonyms(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.SYNONYM, o.getName(),
-                    new DBObjectDiff<>(o, null));
+        for (o in finalSchema.newSynonyms(initialSchema)) {
+            doDiff(
+                diffOptions, Operation.DROP, ObjectType.SYNONYM, o.name,
+                DBObjectDiff(o, null)
+            )
         }
         // Views
-        for (View o : initialSchema.newViews(finalSchema)) {
-            doDiff(Operation.CREATE, ObjectType.VIEW, o.getName(), new DBObjectDiff<>(
-                    null, o));
+        for (o in initialSchema.newViews(finalSchema)) {
+            doDiff(
+                diffOptions, Operation.CREATE, ObjectType.VIEW, o.name, DBObjectDiff(
+                    null, o
+                )
+            )
         }
-        for (DBObjectDiff<View> d : initialSchema.updateViews(finalSchema)) {
-            doDiff(Operation.UPDATE, ObjectType.VIEW, d.getName(), d);
+        for (d in initialSchema.updateViews(finalSchema)) {
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.VIEW, d.name, d)
         }
-        for (View o : finalSchema.newViews(initialSchema)) {
-            doDiff(Operation.DROP, ObjectType.VIEW, o.getName(), new DBObjectDiff<>(o,
-                    null));
+        for (o in finalSchema.newViews(initialSchema)) {
+            doDiff(
+                diffOptions, Operation.DROP, ObjectType.VIEW, o.name, DBObjectDiff(
+                    o,
+                    null
+                )
+            )
         }
     }
 }

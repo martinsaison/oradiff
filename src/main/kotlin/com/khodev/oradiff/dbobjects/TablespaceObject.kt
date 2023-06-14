@@ -20,35 +20,20 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
+import com.khodev.oradiff.util.ReplaceManager
 
-import com.khodev.oradiff.util.ReplaceManager;
+abstract class TablespaceObject internal constructor(val owner: String, name: String, tablespace: String) :
+    DBObject(name) {
+    val tablespace: String
 
-public abstract class TablespaceObject extends DBObject {
-
-    private final String tablespace;
-    private final String owner;
-
-    public String getTablespace() {
-        return tablespace;
+    init {
+        this.tablespace = ReplaceManager.getManager("tablespaces").getSubstitute(tablespace)
     }
 
-    public String getOwner() {
-        return owner;
+    fun tablespaceSql(diffOptions: DiffOptions): String {
+        return if (diffOptions.withTablespace && tablespace.isNotEmpty()) " tablespace $tablespace" else ""
     }
-
-    TablespaceObject(String owner, String name, String tablespace) {
-        super(name);
-        this.owner = owner;
-        this.tablespace = ReplaceManager.getManager("tablespaces")
-                .getSubstitute(tablespace);
-    }
-
-    String getTablespaceSql() {
-        if (tablespace.length() > 0)
-            return " tablespace " + this.tablespace;
-        return "";
-    }
-
 }

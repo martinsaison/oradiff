@@ -20,36 +20,28 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-public class PublicSynonym extends SubDBObject {
-
-    public PublicSynonym(String name, Table parent) {
-        super(name, parent);
+class PublicSynonym(name: String, parent: Table) : SubDBObject(name, parent) {
+    fun dbEquals(index: PublicSynonym?): Boolean {
+        return true
     }
 
-    public boolean dbEquals(PublicSynonym index) {
-        return true;
+    override val typeName: String
+        get() = "PUBLIC SYNONYM"
+
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        return ("create public synonym " + name + " for "
+                + parent.name + ";\n")
     }
 
-    @Override
-    public String getTypeName() {
-        return "PUBLIC SYNONYM";
+    override fun sqlDrop(): String {
+        return "drop public synonym $name;\n"
     }
 
-    public String sqlCreate() {
-        return "create public synonym " + getName() + " for "
-                + getParent().getName() + ";\n";
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return sqlCreate(diffOptions)
     }
-
-    public String sqlDrop() {
-        return "drop public synonym " + getName() + ";\n";
-    }
-
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return sqlCreate();
-    }
-
 }

@@ -20,109 +20,49 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
+import com.khodev.oradiff.util.ReplaceManager
 
-import com.khodev.oradiff.util.ReplaceManager;
+class Grant(
+    grantee: String, val isSelectPriv: Boolean, val isInsertPriv: Boolean,
+    val isDeletePriv: Boolean, val isUpdatePriv: Boolean, val isReferencesPriv: Boolean,
+    val isAlterPriv: Boolean, val isIndexPriv: Boolean, parent: Table
+) : SubDBObject(grantee, parent) {
 
-import java.util.ArrayList;
-
-public class Grant extends SubDBObject {
-
-    private final boolean selectPriv;
-    private final boolean insertPriv;
-    private final boolean deletePriv;
-    private final boolean updatePriv;
-    private final boolean referencesPriv;
-    private final boolean alterPriv;
-    private final boolean indexPriv;
-
-    public Grant(String grantee, boolean selectPriv, boolean insertPriv,
-                 boolean deletePriv, boolean updatePriv, boolean referencesPriv,
-                 boolean alterPriv, boolean indexPriv, Table parent) {
-        super(grantee, parent);
-        this.selectPriv = selectPriv;
-        this.insertPriv = insertPriv;
-        this.deletePriv = deletePriv;
-        this.updatePriv = updatePriv;
-        this.referencesPriv = referencesPriv;
-        this.alterPriv = alterPriv;
-        this.indexPriv = indexPriv;
+    fun dbEquals(index: Grant?): Boolean {
+        return true
     }
 
-    public boolean dbEquals(Grant index) {
-        return true;
-    }
+    override val typeName: String
+        get() = "GRANT"
 
-    @Override
-    public String getTypeName() {
-        return "GRANT";
-    }
-
-    public String sqlCreate() {
-        ArrayList<String> gl = new ArrayList<>();
-        if (selectPriv)
-            gl.add("SELECT");
-        if (insertPriv)
-            gl.add("INSERT");
-        if (deletePriv)
-            gl.add("DELETE");
-        if (updatePriv)
-            gl.add("UPDATE");
-        if (referencesPriv)
-            gl.add("REFERENCES");
-        if (alterPriv)
-            gl.add("ALTER");
-        if (indexPriv)
-            gl.add("INDEX");
-        String res = "GRANT ";
-        boolean first = true;
-        for (String gs : gl) {
-            if (first)
-                first = false;
-            else
-                res += ", ";
-            res += gs;
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        val gl = ArrayList<String>()
+        if (isSelectPriv) gl.add("SELECT")
+        if (isInsertPriv) gl.add("INSERT")
+        if (isDeletePriv) gl.add("DELETE")
+        if (isUpdatePriv) gl.add("UPDATE")
+        if (isReferencesPriv) gl.add("REFERENCES")
+        if (isAlterPriv) gl.add("ALTER")
+        if (isIndexPriv) gl.add("INDEX")
+        var res: String = "GRANT "
+        var first = true
+        for (gs in gl) {
+            if (first) first = false else res += ", "
+            res += gs
         }
-        res += " ON " + getParent().getName() + " to " + ReplaceManager.getManager("usersroles").getSubstitute(getName()) + ";\n";
-        return res;
+        res += " ON " + parent.name + " to " + ReplaceManager.Companion.getManager("usersroles")
+            .getSubstitute(name) + ";\n"
+        return res
     }
 
-    public String sqlDrop() {
-        return "drop constraint " + getName() + ";\n";
+    override fun sqlDrop(): String {
+        return "drop constraint $name;\n"
     }
 
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return sqlCreate();
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return sqlCreate(diffOptions)
     }
-
-    public boolean isSelectPriv() {
-        return selectPriv;
-    }
-
-    public boolean isInsertPriv() {
-        return insertPriv;
-    }
-
-    public boolean isDeletePriv() {
-        return deletePriv;
-    }
-
-    public boolean isUpdatePriv() {
-        return updatePriv;
-    }
-
-    public boolean isReferencesPriv() {
-        return referencesPriv;
-    }
-
-    public boolean isAlterPriv() {
-        return alterPriv;
-    }
-
-    public boolean isIndexPriv() {
-        return indexPriv;
-    }
-
 }

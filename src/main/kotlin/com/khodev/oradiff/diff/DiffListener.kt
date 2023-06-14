@@ -20,11 +20,8 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.diff
 
-package com.khodev.oradiff.diff;
-
-public interface DiffListener {
-
-    void diffPerformed(Operation diffType, ObjectType diffObject, String name, DBObjectDiff diff);
-
+interface DiffListener {
+    fun diffPerformed(diffOptions: DiffOptions, diffType: Operation, diffObject: ObjectType, name: String, diff: DBObjectDiff<*>)
 }

@@ -20,56 +20,38 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-import java.util.ArrayList;
-
-public class DBPackage extends Source {
-
-    private final ArrayList<String> declaration = new ArrayList<>();
-
-    public DBPackage(String name) {
-        super(name);
+class DBPackage(name: String) : Source(name) {
+    val declaration = ArrayList<String>()
+    fun dbEquals(diffOptions: DiffOptions, dst: DBPackage): Boolean {
+        return super.dbEquals(diffOptions, dst) && DBObject.Companion.textForDiff(
+            diffOptions,
+            declaration
+        ) == DBObject.Companion.textForDiff(diffOptions, dst.declaration)
     }
 
-    public ArrayList<String> getDeclaration() {
-        return declaration;
-    }
-
-    public boolean dbEquals(DBPackage dst) {
-        return super.dbEquals(dst)
-                && (textForDiff(declaration).equals(textForDiff(dst
-                .getDeclaration())));
-    }
-
-    public ArrayList<String> getSource(String type) {
-        switch (type) {
-            case "PACKAGE":
-                return getDeclaration();
-            case "PACKAGE BODY":
-                return getBody();
-            default:
-                System.out.println("Error: unknown type " + type);
-                return null;
+    override fun getSource(type: String): ArrayList<String> {
+        return when (type) {
+            "PACKAGE" -> declaration
+            "PACKAGE BODY" -> body
+            else -> error("Error: unknown type $type")
         }
     }
 
-    @Override
-    public String getTypeName() {
-        return "PACKAGE";
-    }
 
-    public String sqlCreate() {
-        String res = "CREATE OR REPLACE ";
-        for (String line : getDeclaration())
-            res += removeR4(line);
-        res += "/\n";
-        res += "CREATE OR REPLACE ";
-        for (String line : getBody())
-            res += line;
-        res += "/\n";
-        return res;
-    }
+    override val typeName: String
+        get() = "PACKAGE"
 
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        var res = "CREATE OR REPLACE "
+        for (line in declaration) res += DBObject.Companion.removeR4(line)
+        res += "/\n"
+        res += "CREATE OR REPLACE "
+        for (line in body) res += line
+        res += "/\n"
+        return res
+    }
 }

@@ -20,18 +20,9 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
-
-public class Procedure extends Source {
-
-    public Procedure(String name) {
-        super(name);
-    }
-
-    @Override
-    public String getTypeName() {
-        return "PROCEDURE";
-    }
-
+class Procedure(name: String) : Source(name) {
+    override val typeName: String
+        get() = "PROCEDURE"
 }

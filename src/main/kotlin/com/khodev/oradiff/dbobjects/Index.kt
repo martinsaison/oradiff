@@ -20,115 +20,54 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-import java.util.*;
-
-public class Index extends TablespaceObject {
-
-    private String type;
-
-    private boolean unique;
-
-    private String compression;
-
-    private final Collection<IndexColumn> columns = new ArrayList<>();
-
-    private final Table parent;
-
-    public Index(String owner, String name, String tablespace, String type,
-                 boolean isUnique, String compression, Table parent) {
-        super(owner, name, tablespace);
-        this.type = type;
-        this.unique = isUnique;
-        this.compression = compression;
-        this.parent = parent;
-    }
-
-    public String getCompression() {
-        return compression;
-    }
-
-    public void setCompression(String compression) {
-        this.compression = compression;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public boolean isUnique() {
-        return unique;
-    }
-
-    public void setUnique(boolean isUnique) {
-        this.unique = isUnique;
-    }
-
-    public Collection<IndexColumn> getColumns() {
-        return columns;
-    }
-
-    public String sqlCreate() {
-        String res = "";
-        res += "create";
-        if (isUnique())
-            res += " unique";
-
-        if (type.equals("BITMAP"))
-            res += " bitmap";
-        res += " index " + getName() + " on " + parent.getName();
-        res += "\n(";
-        boolean first = true;
-        for (IndexColumn indexColumn : getColumns()) {
-            if (first)
-                first = false;
-            else
-                res += ", ";
-            res += indexColumn.getName();
+class Index(
+    owner: String, name: String, tablespace: String, var type: String,
+    var isUnique: Boolean, var compression: String, private val parent: Table
+) : TablespaceObject(owner, name, tablespace) {
+    val columns: MutableCollection<IndexColumn> = ArrayList()
+    override fun sqlCreate(diffOptions: DiffOptions): String {
+        var res = ""
+        res += "create"
+        if (isUnique) res += " unique"
+        if (type == "BITMAP") res += " bitmap"
+        res += " index " + name + " on " + parent.name
+        res += "\n("
+        var first = true
+        for (indexColumn in columns) {
+            if (first) first = false else res += ", "
+            res += indexColumn.name
         }
-        res += ")" + getTablespaceSql() + ";\n";
-
-        return res;
+        res += ")${tablespaceSql(diffOptions)};\n"
+        return res
     }
 
-    public String sqlDrop() {
-        return "drop index " + getName() + ";\n";
+    override fun sqlDrop(): String {
+        return "drop index $name;\n"
     }
 
-    public boolean dbEquals(Index index) {
-        if (index.isUnique() != unique)
-            return false;
-        if (!index.getType().equals(type))
-            return false;
-        if (columns.size() != index.getColumns().size())
-            return false;
-        Iterator<IndexColumn> it1 = columns.iterator();
-        Iterator<IndexColumn> it2 = index.getColumns().iterator();
+    fun dbEquals(index: Index?): Boolean {
+        if (index!!.isUnique != isUnique) return false
+        if (index.type != type) return false
+        if (columns.size != index.columns.size) return false
+        val it1: Iterator<IndexColumn?> = columns.iterator()
+        val it2: Iterator<IndexColumn?> = index.columns.iterator()
         while (it1.hasNext() && it2.hasNext()) {
-            IndexColumn col1 = it1.next();
-            IndexColumn col2 = it2.next();
-            if (!col1.getName().equals(col2.getName()))
-                return false;
-            if (col1.getPosition() != col2.getPosition())
-                return false;
+            val col1 = it1.next()
+            val col2 = it2.next()
+            if (col1?.name != col2?.name) return false
+            if (col1?.position != col2?.position) return false
         }
-        return true;
+        return true
     }
 
-    @Override
-    public String getTypeName() {
-        return "INDEX";
-    }
+    override val typeName: String
+        get() = "INDEX"
 
-    @Override
-    public String sqlUpdate(DBObject destination) {
-        return sqlCreate();
+    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+        return sqlCreate(diffOptions)
     }
-
 }

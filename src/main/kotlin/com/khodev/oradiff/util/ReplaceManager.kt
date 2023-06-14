@@ -20,89 +20,72 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.util
 
-package com.khodev.oradiff.util;
+import java.io.*
+import java.util.*
 
-import java.io.*;
-import java.util.Hashtable;
-import java.util.Map.Entry;
+class ReplaceManager private constructor(private val name: String) {
+    private val keysValues: Hashtable<String, String> = Hashtable()
+    private var loaded = false
 
-public class ReplaceManager {
+    private val fileName: String
+        get() = "$name.txt"
 
-    private final String name;
-    private final Hashtable<String, String> keysValues;
-    private static Hashtable<String, ReplaceManager> managers = null;
-    boolean loaded = false;
-
-    private ReplaceManager(String name) {
-        this.name = name;
-        keysValues = new Hashtable<>();
-    }
-
-    private String getFileName() {
-        return name + ".txt";
-    }
-
-    private void load() {
-        if (loaded)
-            return;
+    private fun load() {
+        if (loaded) return
         try {
-            File file = new File(getFileName());
-            if (!file.exists())
-                return;
-            String line;
-            BufferedReader r = new BufferedReader(new FileReader(file));
-            while ((line = r.readLine()) != null) {
-                line = line.trim();
-                if (line.length() == 0)
-                    continue;
-                String[] vars = line.split("=");
-                String tablespace = vars[0].trim();
-                String varname = vars[1].trim();
-                keysValues.put(tablespace, varname);
+            val file = File(fileName)
+            if (!file.exists()) return
+            var line: String
+            val r = BufferedReader(FileReader(file))
+            while (r.readLine().also { line = it } != null) {
+                line = line.trim { it <= ' ' }
+                if (line.isEmpty()) continue
+                val vars = line.split("=".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                val tablespace = vars[0].trim { it <= ' ' }
+                val varName = vars[1].trim { it <= ' ' }
+                keysValues[tablespace] = varName
             }
-            r.close();
-            loaded = true;
-        } catch (Exception e) {
-            e.printStackTrace();
+            r.close()
+            loaded = true
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    private void save() {
+    private fun save() {
         try {
-            File file = new File(getFileName());
-            BufferedWriter w = new BufferedWriter(new FileWriter(file));
-            for (Entry<String, String> entry : keysValues.entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-                w.write(key + "=" + value + "\n");
+            val file = File(fileName)
+            val w = BufferedWriter(FileWriter(file))
+            for ((key, value) in keysValues) {
+                w.write("$key=$value\n")
             }
-            w.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+            w.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    public String getSubstitute(String key) {
-        if (key.length() == 0)
-            return key;
-        load();
+    fun getSubstitute(key: String): String {
+        if (key.isEmpty()) return key
+        load()
         if (keysValues.containsKey(key)) {
-            return keysValues.get(key);
+            return keysValues[key]!!
         }
         if (Configuration.saveNewSubstitutes && !keysValues.containsValue(key)) {
-            keysValues.put(key, key);
-            save();
+            keysValues[key] = key
+            save()
         }
-        return key;
+        return key
     }
 
-    public static ReplaceManager getManager(String name) {
-        if (managers == null)
-            managers = new Hashtable<>();
-        if (!managers.containsKey(name))
-            managers.put(name, new ReplaceManager(name));
-        return managers.get(name);
+    companion object {
+        private var managers: Hashtable<String, ReplaceManager>? = null
+        fun getManager(name: String): ReplaceManager {
+            if (managers == null) managers = Hashtable()
+            if (!managers!!.containsKey(name)) managers!![name] = ReplaceManager(name)
+            return managers!![name]!!
+        }
     }
-
 }

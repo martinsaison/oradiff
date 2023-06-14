@@ -20,195 +20,224 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.io
 
-package com.khodev.oradiff.io;
+import com.khodev.oradiff.dbobjects.*
+import org.jdom2.Element
+import org.jdom2.output.Format
+import org.jdom2.output.XMLOutputter
+import java.io.FileOutputStream
+import java.io.IOException
+import java.util.*
 
-import com.khodev.oradiff.dbobjects.*;
-import org.jdom2.Element;
-import org.jdom2.output.Format;
-import org.jdom2.output.XMLOutputter;
+class XmlSchemaWriter(val filename: String) : SchemaWriter {
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Hashtable;
-
-public class XmlSchemaWriter implements SchemaWriter {
-
-    private final String filename;
-
-    private static <T extends DBObject> Element convertToXml(
-            String containerTagName, String tagName,
-            Hashtable<String, T> dbObjects) {
-        return convertToXml(containerTagName, tagName, dbObjects.values());
-    }
-
-    private static <T extends DBObject> Element convertToXml(
-            String containerTagName, String tagName, Collection<T> dbObjects) {
-        Element elementList = new Element(containerTagName);
-        for (DBObject object : dbObjects) {
-            elementList.addContent(getXml(tagName, object));
-        }
-        return elementList;
-    }
-
-    private static Element getXml(String tagName, DBObject object) {
-        Element element = new Element(tagName);
-        element.setAttribute("name", object.getName());
-        if (object instanceof Constraint) {
-            Constraint constraint = (Constraint) object;
-            element.setAttribute("constraintType", constraint.getConstraintType());
-            element.setAttribute("deferrable", constraint.getDeferrable());
-            element.setAttribute("deferred", constraint.getDeferred());
-            element.setAttribute("deleteRule", constraint.getDeleteRule());
-            element.setAttribute("generated", constraint.getGenerated());
-            element.setAttribute("refConstraintName", constraint.getRefConstraintName());
-            element.setAttribute("refUserName", constraint.getRefUserName());
-            element.setAttribute("searchCondition", constraint.getSearchCondition());
-            element.setAttribute("status", constraint.getStatus());
-            element.setAttribute("validated", constraint.getValidated());
-            Element xmlColumns = new Element("columns");
-            for (IndexColumn column : constraint.getColumns())
-                xmlColumns.addContent(getXml("column", column));
-            element.addContent(xmlColumns);
-        }
-        if (object instanceof TablespaceObject) {
-            element.setAttribute("tablespace", ((TablespaceObject) object).getTablespace());
-        }
-        if (object instanceof Source) {
-            Source source = (Source) object;
-            Element xmlBody = new Element("body");
-            String bodyStr = "";
-            for (String line : source.getBody())
-                bodyStr += line;
-            xmlBody.setText(bodyStr);
-            element.addContent(xmlBody);
-        }
-        if (object instanceof DBPackage) {
-            DBPackage pkg = (DBPackage) object;
-            Element xmlDeclaration = new Element("declaration");
-            String bodyStr = "";
-            for (String line : pkg.getDeclaration())
-                bodyStr += line;
-            xmlDeclaration.setText(bodyStr);
-            element.addContent(xmlDeclaration);
-        }
-        if (object instanceof Sequence) {
-            Sequence sequence = (Sequence) object;
-            element.setAttribute("cacheSize", Integer.toString(sequence.getCacheSize()));
-            element.setAttribute("cycleFlag", Boolean.toString(sequence.isCycleFlag()));
-            element.setAttribute("incrementBy", sequence.getIncrementBy());
-            element.setAttribute("lastNumber", sequence.getLastNumber());
-            element.setAttribute("maxValue", sequence.getMaxValue());
-            element.setAttribute("minValue", sequence.getMinValue());
-            element.setAttribute("orderFlag", Boolean.toString(sequence.isOrderFlag()));
-        }
-        if (object instanceof Table) {
-            Table table = (Table) object;
-            element.setAttribute("comments", table.getComments());
-            element.addContent(XmlSchemaWriter.convertToXml("columns", "column", table.getColumns()));
-            element.addContent(XmlSchemaWriter.convertToXml("indexes", "index", table.getIndexes()));
-            element.addContent(XmlSchemaWriter.convertToXml("constraints", "constraint",
-                    table.getConstraints()));
-            element.addContent(XmlSchemaWriter.convertToXml("grants", "grant", table.getGrants()));
-            element.addContent(XmlSchemaWriter.convertToXml("publicSynonyms", "publicSynonym",
-                    table.getPublicSynonyms()));
-            return element;
-
-        }
-        if (object instanceof Trigger) {
-            Trigger trigger = (Trigger) object;
-            element.setAttribute("description", trigger.getDescription());
-            element.setAttribute("event", trigger.getEvent());
-            element.setAttribute("status", trigger.getStatus());
-            element.setAttribute("table", trigger.getTable());
-            element.setAttribute("type", trigger.getType());
-            element.addContent(new Element("when").setText(trigger.getWhen()));
-            element.addContent(new Element("body").setText(trigger.getBody()));
-        }
-        if (object instanceof View) {
-            View view = (View) object;
-            Element xmlColumns = new Element("columns");
-            for (String column : view.getColumns())
-                xmlColumns.addContent(new Element("column").setAttribute(
-                        "name", column));
-            element.addContent(xmlColumns);
-            element.addContent(new Element("source").setText(view.getSource()));
-        }
-        if (object instanceof Column) {
-            Column column = (Column) object;
-            element.setAttribute("id", Integer.toString(column.getId()));
-            element.setAttribute("type", column.getType());
-            element.setAttribute("length", Integer.toString(column.getLength()));
-            element.setAttribute("precision", Integer.toString(column.getPrecision()));
-            element.setAttribute("scale", Integer.toString(column.getScale()));
-            element.setAttribute("nullable", Boolean.toString(column.isNullable()));
-            element.setAttribute("comments", column.getComment());
-            element.setAttribute("defaultValue", column.getDefaultValue());
-        }
-        if (object instanceof Index) {
-            Index index = (Index) object;
-            element.setAttribute("type", index.getType());
-            element.setAttribute("isUnique", Boolean.toString(index.isUnique()));
-            element.setAttribute("compression", index.getCompression());
-            Element xmlColumns = new Element("columns");
-            for (IndexColumn column : index.getColumns())
-                xmlColumns.addContent(getXml("column", column));
-            element.addContent(xmlColumns);
-        }
-        if (object instanceof Grant) {
-            Grant grant = (Grant) object;
-            element.setAttribute("selectPriv", Boolean.toString(grant.isSelectPriv()));
-            element.setAttribute("insertPriv", Boolean.toString(grant.isInsertPriv()));
-            element.setAttribute("deletePriv", Boolean.toString(grant.isDeletePriv()));
-            element.setAttribute("updatePriv", Boolean.toString(grant.isUpdatePriv()));
-            element.setAttribute("referencesPriv",
-                    Boolean.toString(grant.isReferencesPriv()));
-            element.setAttribute("alterPriv", Boolean.toString(grant.isAlterPriv()));
-            element.setAttribute("indexPriv", Boolean.toString(grant.isIndexPriv()));
-        }
-
-        if (object instanceof IndexColumn) {
-            IndexColumn indexColumn = (IndexColumn) object;
-            element.setAttribute("position", Integer.toString(indexColumn.getPosition()));
-        }
-        return element;
-    }
-
-    public String getFilename() {
-        return filename;
-    }
-
-    public XmlSchemaWriter(String filename) {
-        this.filename = filename;
-    }
-
-    public void write(Schema schema) {
-        XMLOutputter output = new XMLOutputter(Format.getPrettyFormat());
-        XmlSchemaWriter writer = new XmlSchemaWriter(filename.replaceAll(".ini", "")
-                + "_autosave.xml");
+    fun write(schema: Schema) {
+        val output = XMLOutputter(Format.getPrettyFormat())
+        val writer = XmlSchemaWriter(
+            filename.replace(".ini".toRegex(), "")
+                    + "_autosave.xml"
+        )
         try {
-            output.output(getXml(schema),
-                    new FileOutputStream(filename));
-        } catch (IOException e) {
-            e.printStackTrace();
+            output.output(
+                getXml(schema),
+                FileOutputStream(filename)
+            )
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
     }
 
-    private Element getXml(Schema schema) throws IOException {
-        Element database = new Element("database");
-        database.addContent(convertToXml("tables", "table", schema.getDbTables()));
-        database.addContent(convertToXml("packages", "package",
-                schema.getDbPackages()));
-        database.addContent(convertToXml("functions", "function",
-                schema.getDbFunctions()));
-        database.addContent(convertToXml("procedures", "procedure",
-                schema.getDbProcedures()));
-        database.addContent(convertToXml("views", "view", schema.getDbViews()));
-        database.addContent(convertToXml("sequences", "sequence",
-                schema.getDbSequences()));
-        database.addContent(convertToXml("triggers", "trigger",
-                schema.getDbTriggers()));
-        return database;
+    @Throws(IOException::class)
+    private fun getXml(schema: Schema): Element {
+        val database = Element("database")
+        database.addContent(convertToXml("tables", "table", schema.dbTables))
+        database.addContent(
+            convertToXml(
+                "packages", "package",
+                schema.dbPackages
+            )
+        )
+        database.addContent(
+            convertToXml(
+                "functions", "function",
+                schema.dbFunctions
+            )
+        )
+        database.addContent(
+            convertToXml(
+                "procedures", "procedure",
+                schema.dbProcedures
+            )
+        )
+        database.addContent(convertToXml("views", "view", schema.dbViews))
+        database.addContent(
+            convertToXml(
+                "sequences", "sequence",
+                schema.dbSequences
+            )
+        )
+        database.addContent(
+            convertToXml(
+                "triggers", "trigger",
+                schema.dbTriggers
+            )
+        )
+        return database
+    }
+
+    companion object {
+        private fun <T : DBObject> convertToXml(
+            containerTagName: String, tagName: String,
+            dbObjects: Hashtable<String, T>
+        ): Element {
+            return convertToXml(containerTagName, tagName, dbObjects.values)
+        }
+
+        private fun <T : DBObject> convertToXml(
+            containerTagName: String, tagName: String, dbObjects: Collection<T>?
+        ): Element {
+            val elementList = Element(containerTagName)
+            for (`object` in dbObjects!!) {
+                elementList.addContent(getXml(tagName, `object`))
+            }
+            return elementList
+        }
+
+        private fun getXml(tagName: String, `object`: DBObject): Element {
+            val element = Element(tagName)
+            element.setAttribute("name", `object`.name)
+            if (`object` is Constraint) {
+                val constraint = `object`
+                element.setAttribute("constraintType", constraint.constraintType)
+                element.setAttribute("deferrable", constraint.deferrable)
+                element.setAttribute("deferred", constraint.deferred)
+                element.setAttribute("deleteRule", constraint.deleteRule)
+                element.setAttribute("generated", constraint.generated)
+                element.setAttribute("refConstraintName", constraint.refConstraintName)
+                element.setAttribute("refUserName", constraint.refUserName)
+                element.setAttribute("searchCondition", constraint.searchCondition)
+                element.setAttribute("status", constraint.status)
+                element.setAttribute("validated", constraint.validated)
+                val xmlColumns = Element("columns")
+                for (column in constraint.columns) xmlColumns.addContent(getXml("column", column))
+                element.addContent(xmlColumns)
+            }
+            if (`object` is TablespaceObject) {
+                element.setAttribute("tablespace", `object`.tablespace)
+            }
+            if (`object` is Source) {
+                val xmlBody = Element("body")
+                var bodyStr: String = ""
+                for (line in `object`.body) bodyStr += line
+                xmlBody.setText(bodyStr)
+                element.addContent(xmlBody)
+            }
+            if (`object` is DBPackage) {
+                val xmlDeclaration = Element("declaration")
+                var bodyStr: String = ""
+                for (line in `object`.declaration) bodyStr += line
+                xmlDeclaration.setText(bodyStr)
+                element.addContent(xmlDeclaration)
+            }
+            if (`object` is Sequence) {
+                val sequence = `object`
+                element.setAttribute("cacheSize", Integer.toString(sequence.cacheSize))
+                element.setAttribute("cycleFlag", sequence.isCycleFlag.toString())
+                element.setAttribute("incrementBy", sequence.incrementBy)
+                element.setAttribute("lastNumber", sequence.lastNumber)
+                element.setAttribute("maxValue", sequence.maxValue)
+                element.setAttribute("minValue", sequence.minValue)
+                element.setAttribute("orderFlag", sequence.isOrderFlag.toString())
+            }
+            if (`object` is Table) {
+                val table = `object`
+                element.setAttribute("owner", table.owner)
+                element.setAttribute("comments", table.comments)
+                element.addContent(convertToXml("columns", "column", table.columns))
+                element.addContent(convertToXml("indexes", "index", table.indexes))
+                element.addContent(
+                    convertToXml(
+                        "constraints", "constraint",
+                        table.constraints
+                    )
+                )
+                element.addContent(convertToXml("grants", "grant", table.grants))
+                element.addContent(
+                    convertToXml(
+                        "publicSynonyms", "publicSynonym",
+                        table.publicSynonyms
+                    )
+                )
+                return element
+            }
+            if (`object` is Synonym) {
+                val synonym = `object`
+                element.setAttribute("owner", synonym.owner)
+                element.setAttribute("name", synonym.name)
+                element.setAttribute("tableOwner", synonym.tableOwner)
+                element.setAttribute("tableName", synonym.tableName)
+                return element
+            }
+            if (`object` is Trigger) {
+                val trigger = `object`
+                element.setAttribute("description", trigger.description)
+                element.setAttribute("event", trigger.event)
+                element.setAttribute("status", trigger.status)
+                element.setAttribute("table", trigger.table)
+                element.setAttribute("type", trigger.type)
+                element.addContent(Element("when").setText(trigger.`when`))
+                element.addContent(Element("body").setText(trigger.body))
+            }
+            if (`object` is View) {
+                val view = `object`
+                val xmlColumns = Element("columns")
+                for (column in view.columns) xmlColumns.addContent(
+                    Element("column").setAttribute(
+                        "name", column
+                    )
+                )
+                element.addContent(xmlColumns)
+                element.addContent(Element("source").setText(view.source))
+            }
+            if (`object` is Column) {
+                val column = `object`
+                element.setAttribute("id", Integer.toString(column.id))
+                element.setAttribute("type", column.type)
+                element.setAttribute("length", Integer.toString(column.length))
+                element.setAttribute("precision", Integer.toString(column.precision))
+                element.setAttribute("scale", Integer.toString(column.scale))
+                element.setAttribute("nullable", column.isNullable.toString())
+                element.setAttribute("comments", column.comment)
+                element.setAttribute("defaultValue", column.defaultValue)
+            }
+            if (`object` is Index) {
+                val index = `object`
+                element.setAttribute("owner", index.owner)
+                element.setAttribute("type", index.type)
+                element.setAttribute("isUnique", index.isUnique.toString())
+                element.setAttribute("compression", index.compression)
+                val xmlColumns = Element("columns")
+                for (column in index.columns) xmlColumns.addContent(getXml("column", column))
+                element.addContent(xmlColumns)
+            }
+            if (`object` is Grant) {
+                val grant = `object`
+                element.setAttribute("selectPriv", (grant.isSelectPriv.toString()))
+                element.setAttribute("insertPriv", (grant.isInsertPriv.toString()))
+                element.setAttribute("deletePriv", (grant.isDeletePriv.toString()))
+                element.setAttribute("updatePriv", (grant.isUpdatePriv.toString()))
+                element.setAttribute(
+                    "referencesPriv",
+                    (grant.isReferencesPriv.toString())
+                )
+                element.setAttribute("alterPriv", (grant.isAlterPriv.toString()))
+                element.setAttribute("indexPriv", (grant.isIndexPriv.toString()))
+            }
+            if (`object` is IndexColumn) {
+                element.setAttribute("position", Integer.toString(`object`.position))
+            }
+            return element
+        }
     }
 }

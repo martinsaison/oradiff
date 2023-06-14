@@ -20,8 +20,6 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.io
 
-package com.khodev.oradiff.io;
-
-interface SchemaWriter {
-}
+internal interface SchemaWriter

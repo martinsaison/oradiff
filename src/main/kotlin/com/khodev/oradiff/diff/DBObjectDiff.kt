@@ -20,44 +20,26 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.diff
 
-package com.khodev.oradiff.diff;
+import com.khodev.oradiff.dbobjects.DBObject
 
-import com.khodev.oradiff.dbobjects.DBObject;
+class DBObjectDiff<T : DBObject?>(src: T, dst: T) {
+    val src: T?
+    val dst: T?
 
-public class DBObjectDiff<T extends DBObject> {
-
-    private final T src;
-
-    public T getSrc() {
-        return src;
+    init {
+        this.src = src
+        this.dst = dst
     }
 
-    public T getDst() {
-        return dst;
+    val name: String
+        get() = if (src == null) dst!!.name else src.name
+
+    fun sqlCreate(diffOptions: DiffOptions): String {
+        return if (src == null) dst!!.sqlCreate(diffOptions) else if (dst == null) src.sqlDrop() else src.sqlUpdate(
+            diffOptions,
+            dst
+        )
     }
-
-    private final T dst;
-
-    public DBObjectDiff(T src, T dst) {
-        this.src = src;
-        this.dst = dst;
-    }
-
-    public String getName() {
-        if (src == null)
-            return dst.getName();
-        else
-            return src.getName();
-    }
-
-    public String sqlCreate() {
-        if (src == null)
-            return dst.sqlCreate();
-        else if (dst == null)
-            return src.sqlDrop();
-        else
-            return src.sqlUpdate(dst);
-    }
-
 }

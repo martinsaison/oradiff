@@ -20,11 +20,6 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.io
 
-package com.khodev.oradiff.io;
-
-public class NoProviderFound extends Exception {
-    public NoProviderFound(String filename) {
-        super(String.format("No provider found for %s", filename));
-    }
-}
+class NoProviderFound(filename: String?) : Exception(String.format("No provider found for %s", filename))

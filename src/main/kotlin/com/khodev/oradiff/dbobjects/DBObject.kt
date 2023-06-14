@@ -20,94 +20,74 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.dbobjects
 
-package com.khodev.oradiff.dbobjects;
+import com.khodev.oradiff.diff.DiffOptions
 
-import java.util.ArrayList;
+abstract class DBObject internal constructor(var name: String) {
 
-public abstract class DBObject {
-
-    static String escape(String s) {
-        if (s == null)
-            return "";
-        return s.replace("'", "''");
+    fun escapeName(name: String): String {
+        return "\"" + name + "\""
     }
 
-    static <T extends DBObject> ArrayList<T> newObjects(
-            ArrayList<T> srcSet, ArrayList<T> dstSet) {
-        ArrayList<T> res = new ArrayList<>();
-        for (T dst : dstSet) {
-            boolean found = false;
-            for (T src : srcSet) {
-                if (src.getName().equals(dst.getName())) {
-                    found = true;
-                    break;
-                }
-            }
-            if (found)
-                continue;
-            res.add(dst);
+    protected abstract val typeName: String
+    abstract fun sqlCreate(diffOptions: DiffOptions): String
+    open fun sqlDrop(): String {
+        return "drop $typeName $name;"
+    }
+
+    abstract fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String
+    companion object {
+        fun escape(s: String?): String {
+            return s?.replace("'", "''") ?: ""
         }
-        return res;
-    }
 
-    public static String removeR4(String s) {
-        return s;
-        /*
+        fun <T : DBObject?> newObjects(
+            srcSet: ArrayList<T>, dstSet: ArrayList<T>
+        ): ArrayList<T> {
+            val res = ArrayList<T>()
+            for (dst in dstSet) {
+                var found = false
+                for (src in srcSet) {
+                    if (src!!.name == dst!!.name) {
+                        found = true
+                        break
+                    }
+                }
+                if (found) continue
+                res.add(dst)
+            }
+            return res
+        }
+
+        fun removeR4(s: String): String {
+            return s
+            /*
 		 * return s.replace("r4", "").replace("R4", "").replace("\"r4\".",
 		 * "").replace("\"R4\".", "");
 		 */
-    }
-
-    static String textForDiff(String text) {
-        String[] lines = text.split("\n");
-        String res = "";
-        for (String line : lines) {
-            line = line.trim();
-            if (line.length() == 0)
-                continue;
-            res += line;
         }
-        return res;
-    }
 
-    static ArrayList<String> textForDiff(ArrayList<String> text) {
-        ArrayList<String> res = new ArrayList<>();
-        for (String line : text) {
-            line = removeR4(line.trim());
-            if (line.length() == 0)
-                continue;
-            res.add(line);
+        fun textForDiff(text: String): String {
+            val lines = text.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            var res = ""
+            for (line in lines) {
+                val trimmedLine = line.trim { it <= ' ' }
+                if (trimmedLine.isEmpty()) continue
+                res += trimmedLine
+            }
+            return res
         }
-        return res;
+
+        fun textForDiff(diffOptions: DiffOptions, text: ArrayList<String>): ArrayList<String> {
+            val res = ArrayList<String>()
+            for (line in text) {
+                val trimmedLine = removeR4(line.trim { it <= ' ' }).replace("\\s+".toRegex(), " ").lowercase().replace("\"", "").replace(" (", "(")
+                if (trimmedLine.isEmpty()) continue
+                if (diffOptions.ignoreSourceComments && trimmedLine.startsWith("--")) continue
+                res.add(trimmedLine)
+            }
+            return res
+        }
     }
-
-    private String name;
-
-    DBObject(String name) {
-        this.name = name;
-    }
-
-    String escapeName(String name) {
-        return "\"" + name + "\"";
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    protected abstract String getTypeName();
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public abstract String sqlCreate();
-
-    public String sqlDrop() {
-        return "drop " + getTypeName() + " " + getName() + ";";
-    }
-
-    public abstract String sqlUpdate(DBObject destination);
-
 }

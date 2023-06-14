@@ -20,126 +20,60 @@
  * SOFTWARE.
  *
  */
+package com.khodev.oradiff.util
 
-package com.khodev.oradiff.util;
+import java.sql.*
+import java.util.*
 
-import java.sql.*;
-import java.util.Properties;
+class OracleConnection(
+    serverName: String?, portNumber: String?, sid: String?,
+    username: String?, password: String?, tableFilter: String?,
+    packageFilter: String?, functionFilter: String?,
+    procedureFilter: String?, viewFilter: String?, sequenceFilter: String?,
+    triggerFilter: String?
+) {
+    var connection: Connection? = null
 
-public class OracleConnection {
-
-    public String getTriggerFilter() {
-        return triggerFilter;
-    }
-
-    public void setTriggerFilter(String triggerFilter) {
-        this.triggerFilter = triggerFilter;
-    }
-
-    private Connection connection;
-
-    private Statement statement;
-
-    private String tableFilter;
-
-    private String packageFilter;
-
-    private String functionFilter;
-
-    private String procedureFilter;
-
-    private String viewFilter;
-
-    private String sequenceFilter;
-
-    private String triggerFilter;
-
-    private Statement getStatement() throws SQLException {
-        if (statement == null) {
-            statement = connection.createStatement();
+    @get:Throws(SQLException::class)
+    private var statement: Statement? = null
+        private get() {
+            if (field == null) {
+                field = connection!!.createStatement()
+            }
+            return field
         }
-        return statement;
-    }
+    var tableFilter: String?
+    var packageFilter: String?
+    var functionFilter: String?
+    var procedureFilter: String?
+    var viewFilter: String?
+    var sequenceFilter: String?
+    var triggerFilter: String?
 
-    public OracleConnection(String serverName, String portNumber, String sid,
-                            String username, String password, String tableFilter,
-                            String packageFilter, String functionFilter,
-                            String procedureFilter, String viewFilter, String sequenceFilter,
-                            String triggerFilter) throws ClassNotFoundException, SQLException {
-        connection = null;
+    init {
         // Load the JDBC driver
-        String driverName = "oracle.jdbc.driver.OracleDriver";
-        Class.forName(driverName);
-        String url = String.format("jdbc:oracle:thin:%1$s/%2$s@%3$s:%4$s:%5$s",
-                username, password, serverName, portNumber, sid);
-        Properties info = new Properties();
-        info.put("defaultRowPrefetch ", "100000");
-        info.put("useFetchSizeWithLongColumn", "true");
-        System.out.println(url);
-        connection = DriverManager.getConnection(url, info);
-        this.tableFilter = tableFilter;
-        this.packageFilter = packageFilter;
-        this.functionFilter = functionFilter;
-        this.procedureFilter = procedureFilter;
-        this.viewFilter = viewFilter;
-        this.sequenceFilter = sequenceFilter;
-        this.triggerFilter = triggerFilter;
+        val driverName = "oracle.jdbc.driver.OracleDriver"
+        Class.forName(driverName)
+        val url = String.format(
+            "jdbc:oracle:thin:%1\$s/%2\$s@%3\$s:%4\$s:%5\$s",
+            username, password, serverName, portNumber, sid
+        )
+        val info = Properties()
+        info["defaultRowPrefetch "] = "100000"
+        info["useFetchSizeWithLongColumn"] = "true"
+        println(url)
+        connection = DriverManager.getConnection(url, info)
+        this.tableFilter = tableFilter
+        this.packageFilter = packageFilter
+        this.functionFilter = functionFilter
+        this.procedureFilter = procedureFilter
+        this.viewFilter = viewFilter
+        this.sequenceFilter = sequenceFilter
+        this.triggerFilter = triggerFilter
     }
 
-    public String getSequenceFilter() {
-        return sequenceFilter;
+    @Throws(SQLException::class)
+    fun query(query: String?): ResultSet {
+        return statement!!.executeQuery(query)
     }
-
-    public void setSequenceFilter(String sequenceFilter) {
-        this.sequenceFilter = sequenceFilter;
-    }
-
-    public ResultSet query(String query) throws SQLException {
-        return getStatement().executeQuery(query);
-    }
-
-    public Connection getConnection() {
-        return connection;
-    }
-
-    public String getTableFilter() {
-        return tableFilter;
-    }
-
-    public void setTableFilter(String tableFilter) {
-        this.tableFilter = tableFilter;
-    }
-
-    public String getPackageFilter() {
-        return packageFilter;
-    }
-
-    public void setPackageFilter(String packageFilter) {
-        this.packageFilter = packageFilter;
-    }
-
-    public String getFunctionFilter() {
-        return functionFilter;
-    }
-
-    public void setFunctionFilter(String functionFilter) {
-        this.functionFilter = functionFilter;
-    }
-
-    public String getProcedureFilter() {
-        return procedureFilter;
-    }
-
-    public void setProcedureFilter(String procedureFilter) {
-        this.procedureFilter = procedureFilter;
-    }
-
-    public String getViewFilter() {
-        return viewFilter;
-    }
-
-    public void setViewFilter(String viewFilter) {
-        this.viewFilter = viewFilter;
-    }
-
 }
