@@ -31,16 +31,12 @@ class DiffManager {
         diffListeners.add(diffListener)
     }
 
-    fun removeDiffListener(diffListener: DiffListener) {
-        diffListeners.remove(diffListener)
-    }
-
-    private fun <T : DBObject?> doDiff(
+    private fun <T> doDiff(
         diffOptions: DiffOptions,
         diffType: Operation, diffObject: ObjectType,
-        name: String, diff: DBObjectDiff<T>
+        diff: DBObjectDiff<T>
     ) {
-        for (diffListener in diffListeners) diffListener.diffPerformed(diffOptions, diffType, diffObject, name, diff)
+        for (diffListener in diffListeners) diffListener.diffPerformed(diffOptions, diffType, diffObject, diff)
     }
 
     @Throws(IOException::class)
@@ -49,31 +45,31 @@ class DiffManager {
         for (o in initialSchema!!.newTables(finalSchema)) {
             doDiff(
                 diffOptions,
-                Operation.CREATE, ObjectType.TABLE, o.name,
+                Operation.CREATE, ObjectType.TABLE,
                 DBObjectDiff(null, o)
             )
             for (s in o.publicSynonyms) {
                 doDiff(
                     diffOptions,
-                    Operation.CREATE, ObjectType.PUBLIC_SYNONYM, s.name,
+                    Operation.CREATE, ObjectType.PUBLIC_SYNONYM,
                     DBObjectDiff(null, s)
                 )
             }
         }
         for (d in initialSchema.updateTables(diffOptions, finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.TABLE, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.TABLE, d)
         }
         for (o in finalSchema!!.newTables(initialSchema)) {
             doDiff(
                 diffOptions,
-                Operation.DROP, ObjectType.TABLE, o.name, DBObjectDiff(
+                Operation.DROP, ObjectType.TABLE, DBObjectDiff(
                     o, null
                 )
             )
             for (s in o.publicSynonyms) {
                 doDiff(
                     diffOptions,
-                    Operation.DROP, ObjectType.PUBLIC_SYNONYM, s.name,
+                    Operation.DROP, ObjectType.PUBLIC_SYNONYM,
                     DBObjectDiff(s, null)
                 )
             }
@@ -82,18 +78,18 @@ class DiffManager {
         for (o in initialSchema.newPackages(finalSchema)) {
             doDiff(
                 diffOptions,
-                Operation.CREATE, ObjectType.PACKAGE, o.name,
+                Operation.CREATE, ObjectType.PACKAGE,
                 DBObjectDiff(null, o)
             )
         }
         for (d in initialSchema
             .updatePackages(diffOptions, finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.PACKAGE, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.PACKAGE, d)
         }
         for (o in finalSchema.newPackages(initialSchema)) {
             doDiff(
                 diffOptions,
-                Operation.DROP, ObjectType.PACKAGE, o.name,
+                Operation.DROP, ObjectType.PACKAGE,
                 DBObjectDiff(o, null)
             )
         }
@@ -101,18 +97,18 @@ class DiffManager {
         for (o in initialSchema.newProcedures(finalSchema)) {
             doDiff(
                 diffOptions,
-                Operation.CREATE, ObjectType.PROCEDURE, o.name,
+                Operation.CREATE, ObjectType.PROCEDURE,
                 DBObjectDiff(null, o)
             )
         }
         for (d in initialSchema
             .updateProcedures(diffOptions, finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.PROCEDURE, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.PROCEDURE, d)
         }
         for (o in finalSchema.newProcedures(initialSchema)) {
             doDiff(
                 diffOptions,
-                Operation.DROP, ObjectType.PROCEDURE, o.name,
+                Operation.DROP, ObjectType.PROCEDURE,
                 DBObjectDiff(o, null)
             )
         }
@@ -120,18 +116,18 @@ class DiffManager {
         for (o in initialSchema.newFunctions(finalSchema)) {
             doDiff(
                 diffOptions,
-                Operation.CREATE, ObjectType.FUNCTION, o.name,
+                Operation.CREATE, ObjectType.FUNCTION,
                 DBObjectDiff(null, o)
             )
         }
         for (d in initialSchema
             .updateFunctions(diffOptions, finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.FUNCTION, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.FUNCTION, d)
         }
         for (o in finalSchema.newFunctions(initialSchema)) {
             doDiff(
                 diffOptions,
-                Operation.DROP, ObjectType.FUNCTION, o.name,
+                Operation.DROP, ObjectType.FUNCTION,
                 DBObjectDiff(o, null)
             )
         }
@@ -140,7 +136,7 @@ class DiffManager {
         for (o in initialSchema.newJobs(finalSchema)) {
             doDiff(
                 diffOptions,
-                Operation.CREATE, ObjectType.JOB, o.name, DBObjectDiff(
+                Operation.CREATE, ObjectType.JOB, DBObjectDiff(
                     null,
                     o
                 )
@@ -150,14 +146,14 @@ class DiffManager {
             doDiff(
                 diffOptions,
                 Operation.UPDATE, ObjectType.JOB,
-                d.name, d
+                d
             )
         }
         for (o in finalSchema.newJobs(initialSchema)) {
             doDiff(
                 diffOptions,
                 Operation.DROP, ObjectType.JOB,
-                o.name, DBObjectDiff(o, null)
+                DBObjectDiff(o, null)
             )
         }
 
@@ -165,18 +161,18 @@ class DiffManager {
         for (o in initialSchema.newSequences(finalSchema)) {
             doDiff(
                 diffOptions,
-                Operation.CREATE, ObjectType.SEQUENCE, o.name,
+                Operation.CREATE, ObjectType.SEQUENCE,
                 DBObjectDiff(null, o)
             )
         }
         for (d in initialSchema
             .updateSequences(finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.SEQUENCE, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.SEQUENCE, d)
         }
         for (o in finalSchema.newSequences(initialSchema)) {
             doDiff(
                 diffOptions,
-                Operation.DROP, ObjectType.SEQUENCE, o.name,
+                Operation.DROP, ObjectType.SEQUENCE,
                 DBObjectDiff(o, null)
             )
         }
@@ -184,51 +180,51 @@ class DiffManager {
         for (o in initialSchema.newTriggers(finalSchema)) {
             doDiff(
                 diffOptions,
-                Operation.CREATE, ObjectType.TRIGGER, o.name,
+                Operation.CREATE, ObjectType.TRIGGER,
                 DBObjectDiff(null, o)
             )
         }
         for (d in initialSchema
             .updateTriggers(finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.TRIGGER, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.TRIGGER, d)
         }
         for (o in finalSchema.newTriggers(initialSchema)) {
             doDiff(
-                diffOptions, Operation.DROP, ObjectType.TRIGGER, o.name,
+                diffOptions, Operation.DROP, ObjectType.TRIGGER,
                 DBObjectDiff(o, null)
             )
         }
         // Synonyms
         for (o in initialSchema.newSynonyms(finalSchema)) {
             doDiff(
-                diffOptions, Operation.CREATE, ObjectType.SYNONYM, o.name,
+                diffOptions, Operation.CREATE, ObjectType.SYNONYM,
                 DBObjectDiff(null, o)
             )
         }
         for (d in initialSchema
             .updateSynonyms(finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.SYNONYM, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.SYNONYM, d)
         }
         for (o in finalSchema.newSynonyms(initialSchema)) {
             doDiff(
-                diffOptions, Operation.DROP, ObjectType.SYNONYM, o.name,
+                diffOptions, Operation.DROP, ObjectType.SYNONYM,
                 DBObjectDiff(o, null)
             )
         }
         // Views
         for (o in initialSchema.newViews(finalSchema)) {
             doDiff(
-                diffOptions, Operation.CREATE, ObjectType.VIEW, o.name, DBObjectDiff(
+                diffOptions, Operation.CREATE, ObjectType.VIEW, DBObjectDiff(
                     null, o
                 )
             )
         }
         for (d in initialSchema.updateViews(finalSchema)) {
-            doDiff(diffOptions, Operation.UPDATE, ObjectType.VIEW, d.name, d)
+            doDiff(diffOptions, Operation.UPDATE, ObjectType.VIEW, d)
         }
         for (o in finalSchema.newViews(initialSchema)) {
             doDiff(
-                diffOptions, Operation.DROP, ObjectType.VIEW, o.name, DBObjectDiff(
+                diffOptions, Operation.DROP, ObjectType.VIEW, DBObjectDiff(
                     o,
                     null
                 )

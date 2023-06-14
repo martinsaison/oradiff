@@ -22,22 +22,25 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
-
 class Sequence(
-    name: String, var minValue: String, var maxValue: String,
-    var incrementBy: String, var isCycleFlag: Boolean, var isOrderFlag: Boolean,
-    var cacheSize: Int, var lastNumber: String
-) : DBObject(name) {
+    val name: String,
+    val minValue: String,
+    val maxValue: String,
+    val incrementBy: String,
+    val isCycleFlag: Boolean,
+    val isOrderFlag: Boolean,
+    val cacheSize: Int,
+    val lastNumber: String
+) {
 
     fun dbEquals(dst: Sequence): Boolean {
         return dst.minValue == minValue && dst.maxValue == maxValue && dst.incrementBy == incrementBy && dst.isCycleFlag == isCycleFlag && dst.isOrderFlag == isOrderFlag && dst.cacheSize == cacheSize
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "SEQUENCE"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(): String {
         var res = """
              create sequence $name
              minvalue $minValue
@@ -57,7 +60,7 @@ class Sequence(
         return res
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, dst: DBObject): String {
+    fun <T> sqlUpdate(dst: T): String {
         var res = "alter sequence $name\n"
         if ((dst as Sequence).minValue != minValue) {
             res += "minvalue " + dst.minValue + "\n"

@@ -25,18 +25,19 @@ package com.khodev.oradiff.dbobjects
 import com.khodev.oradiff.diff.DiffOptions
 
 class Table(
-    owner: String, tableName: String, tablespace: String,
-    var comments: String?
-) : TablespaceObject(owner, tableName, tablespace) {
-    var columns = ArrayList<Column>()
-    var indexes = ArrayList<Index>()
-    var constraints = ArrayList<Constraint>()
-    var grants = ArrayList<Grant>()
-    var publicSynonyms = ArrayList<PublicSynonym>()
+    val owner: String, val name: String, val tablespace: String, val comments: String?
+)  {
+    val columns = ArrayList<Column>()
+    val indexes = ArrayList<Index>()
+    val constraints = ArrayList<Constraint>()
+    val grants = ArrayList<Grant>()
+    val publicSynonyms = ArrayList<PublicSynonym>()
 
     private fun columnChanges(diffOptions: DiffOptions, destination: Table): String {
-        return (sqlNewColumns(diffOptions, destination) + sqlDropColumns(destination)
-                + sqlAlterColumns(diffOptions, destination))
+        return (sqlNewColumns(destination) + sqlDropColumns(destination) + sqlAlterColumns(
+            diffOptions,
+            destination
+        ))
     }
 
     private fun getColumnsComments(columns: ArrayList<Column>): String {
@@ -48,12 +49,30 @@ class Table(
     }
 
     private fun indexChanges(diffOptions: DiffOptions, destination: Table): String {
-        return (sqlNewIndexes(diffOptions, destination) + sqlDropIndexes(destination)
-                + sqlAlterIndexes(diffOptions, destination))
+        return (sqlNewIndexes(diffOptions, destination) + sqlDropIndexes(destination) + sqlAlterIndexes(
+            diffOptions,
+            destination
+        ))
     }
 
     private fun newIndexes(destination: Table): ArrayList<Index> {
-        return newObjects(indexes, destination.indexes)
+        val res = ArrayList<Index>()
+        for (dst in destination.indexes) {
+            var found = false
+            for (src in indexes) {
+                if (src.name == dst.name) {
+                    found = true
+                    break
+                }
+            }
+            if (found) continue
+            res.add(dst)
+        }
+        return res
+    }
+
+    fun escape(s: String?): String {
+        return s?.replace("'", "''") ?: ""
     }
 
     private fun sqlAlterColumns(diffOptions: DiffOptions, destination: Table): String {
@@ -64,7 +83,7 @@ class Table(
             // research in current table
             val src = getColumnByName(dst.name)
             if (src != null) {
-                if (!src.dbEquals(diffOptions, dst)) columnsDiffs.add(dst)
+                if (!src.dbEquals(dst)) columnsDiffs.add(dst)
             }
         }
         if (columnsDiffs.size > 0) {
@@ -74,7 +93,7 @@ class Table(
             for (dst in columnsDiffs) {
                 if (first) first = false else res += ", "
                 res += """
-  ${dst!!.sqlCreate(diffOptions)}"""
+  ${dst!!.sqlCreate()}"""
             }
             res += "\n);\n"
         }
@@ -84,8 +103,7 @@ class Table(
                 // research in current table
                 val src = getColumnByName(dst.name)
                 if (src != null) {
-                    if (trimLines(src.comment) != trimLines(dst.comment)
-                    ) {
+                    if (trimLines(src.comment) != trimLines(dst.comment)) {
                         res += dst.sqlComments(name)
                     }
                 }
@@ -110,12 +128,15 @@ class Table(
         return res
     }
 
+    fun escapeName(name: String): String {
+        return "\"" + name + "\""
+    }
+
     private fun sqlDropColumns(destination: Table): String {
         var res = ""
         val columnsToDrop = destination.newColumns(this)
         for (column in columnsToDrop) {
-            res += ("alter table " + escapeName(name) + " drop column "
-                    + escapeName(column.name) + ";\n")
+            res += ("alter table " + escapeName(name) + " drop column " + escapeName(column.name) + ";\n")
         }
         return res
     }
@@ -129,7 +150,7 @@ class Table(
         return res
     }
 
-    private fun sqlNewColumns(diffOptions: DiffOptions, destination: Table): String {
+    private fun sqlNewColumns(destination: Table): String {
         var res = ""
         val columnsToAdd = newColumns(destination)
         if (columnsToAdd.size > 0) {
@@ -142,7 +163,7 @@ class Table(
                     res += ","
                 }
                 res += """
-  ${column.sqlCreate(diffOptions)}"""
+  ${column.sqlCreate()}"""
             }
             res += "\n);\n"
             // new column comments
@@ -187,22 +208,34 @@ class Table(
         return null
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "TABLE"
 
     // returns columns which are in destination table but not in current table
     private fun newColumns(destination: Table): ArrayList<Column> {
-        return newObjects(columns, destination.columns)
+        val res = ArrayList<Column>()
+        for (dst in destination.columns) {
+            var found = false
+            for (src in columns) {
+                if (src.name == dst.name) {
+                    found = true
+                    break
+                }
+            }
+            if (found) continue
+            res.add(dst)
+        }
+        return res
     }
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+     fun sqlCreate(diffOptions: DiffOptions): String {
         // table
         var res: String = "create table " + escapeName(name) + " ("
         var first = true
         for (column in columns) {
             if (first) first = false else res += ","
             res += """
-  ${column.sqlCreate(diffOptions)}"""
+  ${column.sqlCreate()}"""
         }
         res += """
             
@@ -224,21 +257,24 @@ class Table(
         // grants
         if ((!diffOptions.ignoreGrantChanges) && grants.size > 0) {
             for (grant in grants) {
-                res += grant.sqlCreate(diffOptions)
+                res += grant.sqlCreate(this)
             }
         }
         return res
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+     fun sqlUpdate(diffOptions: DiffOptions, destination: Table): String {
         var res = ""
-        val dst = destination as Table
-        res += columnChanges(diffOptions, dst)
-        res += indexChanges(diffOptions, dst)
-        if (dst.name != name) {
-            res += ("ALTER TABLE " + name + " RENAME TO " + dst.name
-                    + ";")
+         res += columnChanges(diffOptions, destination)
+        res += indexChanges(diffOptions, destination)
+        if (destination.name != name) {
+            res += ("ALTER TABLE " + name + " RENAME TO " + destination.name + ";")
         }
         return res
     }
+
+    fun tablespaceSql(diffOptions: DiffOptions): String {
+        return if (diffOptions.withTablespace && tablespace.isNotEmpty()) " tablespace $tablespace" else ""
+    }
+
 }

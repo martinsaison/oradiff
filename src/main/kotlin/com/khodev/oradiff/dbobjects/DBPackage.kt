@@ -27,10 +27,9 @@ import com.khodev.oradiff.diff.DiffOptions
 class DBPackage(name: String) : Source(name) {
     val declaration = ArrayList<String>()
     fun dbEquals(diffOptions: DiffOptions, dst: DBPackage): Boolean {
-        return super.dbEquals(diffOptions, dst) && DBObject.Companion.textForDiff(
-            diffOptions,
-            declaration
-        ) == DBObject.Companion.textForDiff(diffOptions, dst.declaration)
+        return super.dbEquals(diffOptions, dst) && textForDiff(
+            diffOptions, declaration
+        ) == textForDiff(diffOptions, dst.declaration)
     }
 
     override fun getSource(type: String): ArrayList<String> {
@@ -42,16 +41,21 @@ class DBPackage(name: String) : Source(name) {
     }
 
 
-    override val typeName: String
+    val typeName: String
         get() = "PACKAGE"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(): String {
         var res = "CREATE OR REPLACE "
-        for (line in declaration) res += DBObject.Companion.removeR4(line)
+        for (line in declaration) res += line
         res += "/\n"
         res += "CREATE OR REPLACE "
         for (line in body) res += line
         res += "/\n"
         return res
     }
+
+    fun sqlUpdate(destination: DBPackage): String {
+        return destination.sqlCreate()
+    }
+
 }

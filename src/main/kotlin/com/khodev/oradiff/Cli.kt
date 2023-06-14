@@ -61,7 +61,17 @@ class Cli private constructor(private val args: Array<String>) {
         override fun load(): Schema {
             matcher.reset()
             if (!matcher.find()) {
-                return Schema()
+                return Schema(
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                )
             }
             val host = matcher.group(1)
             val port = matcher.group(2)
@@ -92,7 +102,17 @@ class Cli private constructor(private val args: Array<String>) {
         }
 
         override fun load(): Schema {
-            return Schema()
+            return Schema(
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap()
+            )
         }
     }
 
@@ -128,10 +148,7 @@ class Cli private constructor(private val args: Array<String>) {
         options.addOptionGroup(commands)
         options.addOption("sm", "save-map", false, "save new substitutions into a file")
         options.addOption(
-            "rf",
-            "rename-folder",
-            false,
-            "automatically change the destination folder to a new one if already exists"
+            "rf", "rename-folder", false, "automatically change the destination folder to a new one if already exists"
         )
         options.addOption("on", "old-new", false, "generate old and new files")
         options.addOption("ts", "with-tablespace", false, "include tablespace in the diff")

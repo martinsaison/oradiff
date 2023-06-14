@@ -22,23 +22,27 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
 import com.khodev.oradiff.util.ReplaceManager
 
 class Grant(
-    grantee: String, val isSelectPriv: Boolean, val isInsertPriv: Boolean,
-    val isDeletePriv: Boolean, val isUpdatePriv: Boolean, val isReferencesPriv: Boolean,
-    val isAlterPriv: Boolean, val isIndexPriv: Boolean, parent: Table
-) : SubDBObject(grantee, parent) {
+    val grantee: String,
+    val isSelectPriv: Boolean,
+    val isInsertPriv: Boolean,
+    val isDeletePriv: Boolean,
+    val isUpdatePriv: Boolean,
+    val isReferencesPriv: Boolean,
+    val isAlterPriv: Boolean,
+    val isIndexPriv: Boolean
+) {
 
-    fun dbEquals(index: Grant?): Boolean {
+    fun dbEquals(): Boolean {
         return true
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "GRANT"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(parent: Table): String {
         val gl = ArrayList<String>()
         if (isSelectPriv) gl.add("SELECT")
         if (isInsertPriv) gl.add("INSERT")
@@ -47,22 +51,17 @@ class Grant(
         if (isReferencesPriv) gl.add("REFERENCES")
         if (isAlterPriv) gl.add("ALTER")
         if (isIndexPriv) gl.add("INDEX")
-        var res: String = "GRANT "
+        var res = "GRANT "
         var first = true
         for (gs in gl) {
             if (first) first = false else res += ", "
             res += gs
         }
-        res += " ON " + parent.name + " to " + ReplaceManager.Companion.getManager("usersroles")
-            .getSubstitute(name) + ";\n"
+        res += " ON " + parent.name + " to " + ReplaceManager.getManager("usersroles").getSubstitute(grantee) + ";\n"
         return res
     }
 
-    override fun sqlDrop(): String {
-        return "drop constraint $name;\n"
-    }
-
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return sqlCreate(diffOptions)
+    fun sqlUpdate(parent: Table): String {
+        return sqlCreate(parent)
     }
 }

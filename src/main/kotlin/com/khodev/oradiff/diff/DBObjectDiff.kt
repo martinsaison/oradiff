@@ -22,9 +22,27 @@
  */
 package com.khodev.oradiff.diff
 
-import com.khodev.oradiff.dbobjects.DBObject
+import com.khodev.oradiff.dbobjects.*
+import com.khodev.oradiff.dbobjects.Sequence
 
-class DBObjectDiff<T : DBObject?>(src: T, dst: T) {
+class DBObjectDiff<T>(src: T, dst: T) {
+    fun getName(): String {
+        val o = src ?: dst
+        return when(o) {
+            is Table -> o.name
+            is DBPackage -> o.name
+            is Procedure -> o.name
+            is com.khodev.oradiff.dbobjects.Function -> o.name
+            is Job -> o.name
+            is Sequence -> o.name
+            is View -> o.name
+            is Trigger -> o.name
+            is Synonym -> o.name
+            is PublicSynonym -> o.name
+            else -> throw IllegalArgumentException("Unknown object type")
+        }
+    }
+
     val src: T?
     val dst: T?
 
@@ -33,13 +51,4 @@ class DBObjectDiff<T : DBObject?>(src: T, dst: T) {
         this.dst = dst
     }
 
-    val name: String
-        get() = if (src == null) dst!!.name else src.name
-
-    fun sqlCreate(diffOptions: DiffOptions): String {
-        return if (src == null) dst!!.sqlCreate(diffOptions) else if (dst == null) src.sqlDrop() else src.sqlUpdate(
-            diffOptions,
-            dst
-        )
-    }
 }

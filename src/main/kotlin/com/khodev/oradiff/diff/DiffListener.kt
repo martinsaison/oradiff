@@ -23,5 +23,5 @@
 package com.khodev.oradiff.diff
 
 interface DiffListener {
-    fun diffPerformed(diffOptions: DiffOptions, diffType: Operation, diffObject: ObjectType, name: String, diff: DBObjectDiff<*>)
+    fun diffPerformed(diffOptions: DiffOptions, diffType: Operation, diffObject: ObjectType, diff: DBObjectDiff<*>)
 }

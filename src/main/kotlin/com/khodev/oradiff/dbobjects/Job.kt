@@ -22,21 +22,22 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
-
 class Job(
-    name: String, private val what: String, private val nextdate: String, private val interval: String,
-    val broken: Boolean
-) : DBObject(name) {
+    val name: String,
+    private val what: String,
+    private val nextdate: String,
+    private val interval: String,
+    private val broken: Boolean
+)  {
 
     fun dbEquals(dst: Job): Boolean {
         return what == dst.what && nextdate == dst.nextdate && interval == dst.interval
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "JOB"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(): String {
         var res = """		begin
 		  sys.dbms_job.submit(job => $name,
 		                      what => '${what}',
@@ -55,7 +56,7 @@ class Job(
         return res
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return destination.sqlCreate(diffOptions)
+    fun sqlUpdate(destination: Job): String {
+        return destination.sqlCreate()
     }
 }

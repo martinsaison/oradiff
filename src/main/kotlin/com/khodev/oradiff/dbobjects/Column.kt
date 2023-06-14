@@ -22,18 +22,26 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
-
 class Column(
-    name: String, var id: Int, var type: String, var length: Int, var precision: Int,
-    var scale: Int, var isNullable: Boolean, var comment: String, var defaultValue: String,
-    parent: Table
-) : SubDBObject(name, parent) {
+    val name: String,
+    val id: Int,
+    val type: String,
+    val length: Int,
+    val precision: Int,
+    val scale: Int,
+    val isNullable: Boolean,
+    val comment: String,
+    val defaultValue: String
+)  {
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun escapeName(name: String): String {
+        return "\"" + name + "\""
+    }
+
+    fun sqlCreate(): String {
         var res = escapeName(name) + " " + typeAsSql()
         if (!isNullable) res += " not null"
-        if (defaultValue.length > 0) res += " default $defaultValue"
+        if (defaultValue.isNotEmpty()) res += " default $defaultValue"
         return res
     }
 
@@ -51,7 +59,7 @@ class Column(
         }
     }
 
-    fun dbEquals(diffOptions: DiffOptions, column: Column): Boolean {
+    fun dbEquals(column: Column): Boolean {
         return type == column.type
                 && length == column.length
                 && precision == column.precision
@@ -68,10 +76,14 @@ class Column(
         return res
     }
 
-    override val typeName: String
+    fun escape(s: String?): String {
+        return s?.replace("'", "''") ?: ""
+    }
+
+    val typeName: String
         get() = "COLUMN"
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return sqlCreate(diffOptions)
+    fun sqlUpdate(): String {
+        return sqlCreate()
     }
 }

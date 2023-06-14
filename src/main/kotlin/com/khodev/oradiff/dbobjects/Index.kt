@@ -25,11 +25,16 @@ package com.khodev.oradiff.dbobjects
 import com.khodev.oradiff.diff.DiffOptions
 
 class Index(
-    owner: String, name: String, tablespace: String, var type: String,
-    var isUnique: Boolean, var compression: String, private val parent: Table
-) : TablespaceObject(owner, name, tablespace) {
+    val owner: String,
+    val name: String,
+    val tablespace: String,
+    val type: String,
+    val isUnique: Boolean,
+    var compression: String,
+    private val parent: Table
+)  {
     val columns: MutableCollection<IndexColumn> = ArrayList()
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(diffOptions: DiffOptions): String {
         var res = ""
         res += "create"
         if (isUnique) res += " unique"
@@ -45,7 +50,7 @@ class Index(
         return res
     }
 
-    override fun sqlDrop(): String {
+    fun sqlDrop(): String {
         return "drop index $name;\n"
     }
 
@@ -64,10 +69,15 @@ class Index(
         return true
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "INDEX"
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+    fun sqlUpdate(diffOptions: DiffOptions): String {
         return sqlCreate(diffOptions)
     }
+
+    fun tablespaceSql(diffOptions: DiffOptions): String {
+        return if (diffOptions.withTablespace && tablespace.isNotEmpty()) " tablespace $tablespace" else ""
+    }
+
 }

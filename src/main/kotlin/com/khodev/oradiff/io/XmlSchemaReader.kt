@@ -27,30 +27,25 @@ import com.khodev.oradiff.dbobjects.Function
 import com.khodev.oradiff.util.ReplaceManager
 import org.jdom2.Element
 import org.jdom2.input.SAXBuilder
-import java.io.*
-import java.lang.Boolean
+import java.io.File
 import java.util.*
-import kotlin.Exception
-import kotlin.String
 
 class XmlSchemaReader(private val filename: String) : SchemaReader {
     override fun get(): Schema {
-        val schema = Schema()
-        try {
-            val sxb = SAXBuilder()
-            val document = sxb.build(File(filename))
-            val database = document.rootElement
-            schema.dbTables = getTables(database)
-            schema.dbPackages = getPackages(database)
-            schema.dbFunctions = getFunctions(database)
-            schema.dbProcedures = getProcedures(database)
-            schema.dbViews = getViews(database)
-            schema.dbSequences = getSequences(database)
-            schema.dbTriggers = getTriggers(database)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return schema
+        val sxb = SAXBuilder()
+        val document = sxb.build(File(filename))
+        val database = document.rootElement
+        return Schema(
+            getFunctions(database),
+            emptyMap(),
+            getPackages(database),
+            getProcedures(database),
+            getSequences(database),
+            emptyMap(),
+            getTables(database),
+            getTriggers(database),
+            getViews(database)
+        )
     }
 
     private fun getTriggers(database: Element): Hashtable<String, Trigger> {
@@ -104,8 +99,8 @@ class XmlSchemaReader(private val filename: String) : SchemaReader {
             element.getAttributeValue("minValue"),
             element.getAttributeValue("maxValue"),
             element.getAttributeValue("incrementBy"),
-            Boolean.parseBoolean(element.getAttributeValue("cycleFlag")),
-            Boolean.parseBoolean(element.getAttributeValue("orderFlag")),
+            element.getAttributeValue("cycleFlag").toBoolean(),
+            element.getAttributeValue("orderFlag").toBoolean(),
             element.getAttributeValue("cacheSize").toInt(),
             element.getAttributeValue("lastNumber")
         )
@@ -215,13 +210,15 @@ class XmlSchemaReader(private val filename: String) : SchemaReader {
 
     private fun getTable(element: Element): Table {
         val table = Table(
-            "", element.getAttributeValue("name"), ReplaceManager.Companion.getManager("tablespaces")!!
-                .getSubstitute(element.getAttributeValue("tablespace")), element.getAttributeValue("comments")
+            "",
+            element.getAttributeValue("name"),
+            ReplaceManager.getManager("tablespaces").getSubstitute(element.getAttributeValue("tablespace")),
+            element.getAttributeValue("comments")
         )
         table.columns.clear()
         var children = getChildren(element, "columns")
         for (child in children) {
-            table.columns.add(getColumn(table, child))
+            table.columns.add(getColumn(child))
         }
         table.indexes.clear()
         children = getChildren(element, "indexes")
@@ -247,20 +244,19 @@ class XmlSchemaReader(private val filename: String) : SchemaReader {
     }
 
     private fun getPublicSynonym(table: Table, element: Element): PublicSynonym {
-        return PublicSynonym(element.getAttributeValue("name"), table)
+        return PublicSynonym(element.getAttributeValue("name"), table.name)
     }
 
     private fun getGrant(table: Table, element: Element): Grant {
         return Grant(
             element.getAttributeValue("name"),
-            Boolean.parseBoolean(element.getAttributeValue("insertPriv")),
-            Boolean.parseBoolean(element.getAttributeValue("selectPriv")),
-            Boolean.parseBoolean(element.getAttributeValue("deletePriv")),
-            Boolean.parseBoolean(element.getAttributeValue("updatePriv")),
-            Boolean.parseBoolean(element.getAttributeValue("referencesPriv")),
-            Boolean.parseBoolean(element.getAttributeValue("alterPriv")),
-            Boolean.parseBoolean(element.getAttributeValue("indexPriv")),
-            table
+            element.getAttributeValue("insertPriv").toBoolean(),
+            element.getAttributeValue("selectPriv").toBoolean(),
+            element.getAttributeValue("deletePriv").toBoolean(),
+            element.getAttributeValue("updatePriv").toBoolean(),
+            element.getAttributeValue("referencesPriv").toBoolean(),
+            element.getAttributeValue("alterPriv").toBoolean(),
+            element.getAttributeValue("indexPriv").toBoolean()
         )
     }
 
@@ -276,8 +272,7 @@ class XmlSchemaReader(private val filename: String) : SchemaReader {
             element.getAttributeValue("deferrable"),
             element.getAttributeValue("deferred"),
             element.getAttributeValue("validated"),
-            element.getAttributeValue("generated"),
-            table
+            element.getAttributeValue("generated")
         )
         val container = Hashtable<String, IndexColumn>()
         val children = getChildren(element, "columns")
@@ -295,7 +290,7 @@ class XmlSchemaReader(private val filename: String) : SchemaReader {
             element.getAttributeValue("name"),
             element.getAttributeValue("tablespace"),
             element.getAttributeValue("type"),
-            Boolean.parseBoolean(element.getAttributeValue("isUnique")),
+            element.getAttributeValue("isUnique").toBoolean(),
             element.getAttributeValue("compression"),
             table
         )
@@ -309,19 +304,17 @@ class XmlSchemaReader(private val filename: String) : SchemaReader {
         return index
     }
 
-    private fun getColumn(table: Table, element: Element): Column {
-        val column = Column(
+    private fun getColumn(element: Element): Column {
+        return Column(
             element.getAttributeValue("name"),
             element.getAttributeValue("id").toInt(),
             element.getAttributeValue("type"),
             element.getAttributeValue("length").toInt(),
             element.getAttributeValue("precision").toInt(),
             element.getAttributeValue("scale").toInt(),
-            Boolean.parseBoolean(element.getAttributeValue("nullable")),
+            element.getAttributeValue("nullable").toBoolean(),
             element.getAttributeValue("comments"),
-            element.getAttributeValue("defaultValue"),
-            table
+            element.getAttributeValue("defaultValue")
         )
-        return column
     }
 }

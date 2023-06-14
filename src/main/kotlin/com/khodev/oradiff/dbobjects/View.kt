@@ -22,28 +22,37 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
-
-class View(name: String, source: String) : DBObject(name) {
+class View(val name: String, source: String)  {
     val columns = ArrayList<String?>()
-    var source: String
+    val source: String
 
     init {
-        this.source = DBObject.Companion.removeR4(source)
+        this.source = source
     }
 
     fun addColumn(column: String?) {
         columns.add(column)
     }
 
-    fun dbEquals(dst: View): Boolean {
-        return DBObject.Companion.textForDiff(dst.source) == DBObject.Companion.textForDiff(source) && columns == dst.columns
+    fun textForDiff(text: String): String {
+        val lines = text.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        var res = ""
+        for (line in lines) {
+            val trimmedLine = line.trim { it <= ' ' }
+            if (trimmedLine.isEmpty()) continue
+            res += trimmedLine
+        }
+        return res
     }
 
-    override val typeName: String
+    fun dbEquals(dst: View): Boolean {
+        return textForDiff(dst.source) == textForDiff(source) && columns == dst.columns
+    }
+
+    val typeName: String
         get() = "VIEW"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+     fun sqlCreate(): String {
         var res: String = """
             CREATE OR REPLACE VIEW $name
             (
@@ -57,7 +66,7 @@ class View(name: String, source: String) : DBObject(name) {
         return res
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return destination.sqlCreate(diffOptions)
+     fun sqlUpdate(destination: View): String {
+        return destination.sqlCreate()
     }
 }

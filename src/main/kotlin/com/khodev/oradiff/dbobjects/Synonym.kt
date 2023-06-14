@@ -22,22 +22,20 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
+class Synonym(val owner: String, val name: String, val tableOwner: String, val tableName: String)  {
 
-class Synonym(val owner: String, name: String, val tableOwner: String, val tableName: String) : DBObject(name) {
-
-    fun dbEquals(dst: Synonym?): Boolean {
+    fun dbEquals(): Boolean {
         return false
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "SYNONYM"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+     fun sqlCreate(): String {
         return ""
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+     fun sqlUpdate(): String {
         return ""
     }
 }

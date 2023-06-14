@@ -44,7 +44,6 @@ class DiffExporter(
             Operation.CREATE -> "create"
             Operation.UPDATE -> "update"
             Operation.DROP -> "drop"
-            else -> "unknown"
         }
         val objStr: String
         when (obj) {
@@ -62,7 +61,6 @@ class DiffExporter(
             ObjectType.TRIGGER -> objStr = "trigger"
             ObjectType.SYNONYM -> objStr = "synonym"
             ObjectType.PUBLIC_SYNONYM -> objStr = "public_synonym"
-            else -> objStr = "unknown"
         }
         val folder = destFolder + "\\" + objStr
         val dest = File(folder)
@@ -70,30 +68,36 @@ class DiffExporter(
         return folder + "\\" + diffStr + "_" + objStr + "_" + name + ".sql"
     }
 
-    override fun diffPerformed(diffOptions: DiffOptions, diffType: Operation, diffObject: ObjectType, name: String, diff: DBObjectDiff<*>) {
+    override fun diffPerformed(
+        diffOptions: DiffOptions,
+        diffType: Operation,
+        diffObject: ObjectType,
+        diff: DBObjectDiff<*>
+    ) {
         try {
             var f = PrintWriter(
                 BufferedOutputStream(
                     FileOutputStream(
-                        getFileName(diffType, diffObject, name)
+                        getFileName(diffType, diffObject, diff.getName())
                     )
                 )
             )
-            f.write(diff.sqlCreate(diffOptions))
+            f.write(sqlCreate(diff, diffOptions))
             f.close()
-            fAll!!.write(diff.sqlCreate(diffOptions))
+            fAll!!.write(sqlCreate(diff, diffOptions))
             if (diff.src != null && Configuration.createOldNew) {
                 f = PrintWriter(
                     BufferedOutputStream(
                         FileOutputStream(
                             getFileName(
                                 diffType, diffObject,
-                                name
+                                diff.getName()
                             ) + "_old"
                         )
                     )
                 )
-                f.write(diff.src.sqlCreate(diffOptions))
+                val create = getSqlCreate(diff.src, diffOptions)
+                f.write(create)
                 f.close()
             }
             if (diff.dst != null && Configuration.createOldNew) {
@@ -102,16 +106,78 @@ class DiffExporter(
                         FileOutputStream(
                             getFileName(
                                 diffType, diffObject,
-                                name
+                                diff.getName()
                             ) + "_new"
                         )
                     )
                 )
-                f.write(diff.dst.sqlCreate(diffOptions))
+                f.write(getSqlCreate(diff.dst, diffOptions))
                 f.close()
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    fun <T> sqlDrop(o: T): String {
+        return when (o) {
+            is Table -> "drop ${o.typeName} ${o.name};"
+            is DBPackage -> "drop package ${o.name};"
+            is Procedure -> "drop procedure ${o.name};"
+            is com.khodev.oradiff.dbobjects.Function -> "drop function ${o.name};"
+            is Job -> "drop job ${o.name};"
+            is Sequence -> "drop sequence ${o.name};"
+            is View -> "drop view ${o.name};"
+            is Trigger -> "drop trigger ${o.name};"
+            is Synonym -> "drop synonym ${o.name};"
+            is PublicSynonym -> "drop public synonym ${o.name};"
+            else -> throw RuntimeException("Unknown object type")
+        }
+    }
+
+
+    fun sqlCreate(diff: DBObjectDiff<*>, diffOptions: DiffOptions): String {
+        return if (diff.src == null)
+            getSqlCreate(diff.dst!!, diffOptions)
+        else
+            if (diff.dst == null)
+                sqlDrop(diff.src)
+            else
+                getSqlUpdate(diff.src, diff.dst, diffOptions)
+    }
+
+    private fun <T> getSqlUpdate(src: T, dst: T, diffOptions: DiffOptions): String {
+        return when {
+            src is Table && dst is Table -> src.sqlUpdate(diffOptions, dst)
+            src is DBPackage && dst is DBPackage -> src.sqlUpdate(dst)
+            src is Procedure && dst is Procedure -> src.sqlUpdate(dst)
+            src is com.khodev.oradiff.dbobjects.Function && dst is com.khodev.oradiff.dbobjects.Function -> src.sqlUpdate(
+                dst
+            )
+
+            src is Job && dst is Job -> src.sqlUpdate(dst)
+            src is Sequence && dst is Sequence -> src.sqlUpdate(dst)
+            src is View && dst is View -> src.sqlUpdate(dst)
+            src is Trigger && dst is Trigger -> src.sqlUpdate(dst)
+            src is Synonym && dst is Synonym -> src.sqlUpdate()
+            src is PublicSynonym && dst is PublicSynonym -> src.sqlUpdate()
+            else -> throw Exception("Unknown object type")
+        }
+    }
+
+    private fun <T> getSqlCreate(o: T, diffOptions: DiffOptions): String {
+        return when (o) {
+            is Table -> o.sqlCreate(diffOptions)
+            is DBPackage -> o.sqlCreate()
+            is Procedure -> o.sqlCreate()
+            is com.khodev.oradiff.dbobjects.Function -> o.sqlCreate()
+            is Job -> o.sqlCreate()
+            is Sequence -> o.sqlCreate()
+            is View -> o.sqlCreate()
+            is Trigger -> o.sqlCreate()
+            is Synonym -> o.sqlCreate()
+            is PublicSynonym -> o.sqlCreate()
+            else -> throw Exception("Unknown object type")
         }
     }
 
@@ -136,4 +202,6 @@ class DiffExporter(
         manager.doPatch(diffOptions, initialSchema, finalSchema)
         fAll!!.close()
     }
+
+
 }

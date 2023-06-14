@@ -22,33 +22,33 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
-
 class Constraint(
-    name: String, val constraintType: String,
-    val searchCondition: String, val refUserName: String,
-    val refConstraintName: String, val deleteRule: String, val status: String,
-    val deferrable: String, val deferred: String, val validated: String,
-    val generated: String, parent: Table
-) : SubDBObject(name, parent) {
+    val name: String,
+    val constraintType: String,
+    val searchCondition: String,
+    val refUserName: String,
+    val refConstraintName: String,
+    val deleteRule: String,
+    val status: String,
+    val deferrable: String,
+    val deferred: String,
+    val validated: String,
+    val generated: String
+) {
     val columns: MutableCollection<IndexColumn> = ArrayList()
 
-    fun dbEquals(index: Constraint?): Boolean {
+    fun dbEquals(): Boolean {
         return true
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "CONSTRAINT"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(): String {
         return ""
     }
 
-    override fun sqlDrop(): String {
-        return "drop constraint $name;\n"
-    }
-
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return sqlCreate(diffOptions)
+    fun sqlUpdate(): String {
+        return sqlCreate()
     }
 }

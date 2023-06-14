@@ -23,6 +23,19 @@
 package com.khodev.oradiff.dbobjects
 
 class Function(name: String) : Source(name) {
-    override val typeName: String
+    val typeName: String
         get() = "FUNCTION"
+
+    fun sqlCreate(): String {
+        var res = "CREATE OR REPLACE "
+        for (line in body) {
+            res += line
+        }
+        res += "/\n"
+        return res
+    }
+
+    fun sqlUpdate(destination: Function): String {
+        return destination.sqlCreate()
+    }
 }

@@ -28,105 +28,45 @@ import com.khodev.oradiff.diff.Equivalence
 import java.io.IOException
 import java.util.*
 
-class Schema {
-    var dbFunctions = Hashtable<String, Function>()
-    var dbJobs = Hashtable<String, Job>()
-    var dbPackages = Hashtable<String, DBPackage>()
-    var dbProcedures = Hashtable<String, Procedure>()
-    var dbSequences = Hashtable<String, Sequence>()
-    var dbSynonyms = Hashtable<String, Synonym>()
-    var dbTables = Hashtable<String, Table>()
-    var dbTriggers = Hashtable<String, Trigger>()
-    var dbViews = Hashtable<String, View>()
-    fun createNewDBSource(name: String, type: String?): Source? {
-        when (type) {
-            "PACKAGE", "PACKAGE BODY" -> return addPackage(DBPackage(name))
-            "FUNCTION" -> return addFunction(Function(name))
-            "PROCEDURE" -> return addProcedure(Procedure(name))
-        }
-        return null
-    }
+class Schema(
+    val dbFunctions: Map<String, Function>,
+    private val dbJobs: Map<String, Job>,
+    val dbPackages: Map<String, DBPackage>,
+    val dbProcedures: Map<String, Procedure>,
+    val dbSequences: Map<String, Sequence>,
+    private val dbSynonyms: Map<String, Synonym>,
+    val dbTables: Map<String, Table>,
+    val dbTriggers: Map<String, Trigger>,
+    val dbViews: Map<String, View>,
 
-    private fun addFunction(o: Function): Function {
-        dbFunctions[o.name] = o
-        return o
-    }
+    ) {
 
     private fun getFunctionByName(name: String?): Function? {
         return dbFunctions[name]
-    }
-
-    fun addJob(o: Job): Job {
-        dbJobs[o.name] = o
-        return o
     }
 
     private fun getJobByName(name: String?): Job? {
         return dbJobs[name]
     }
 
-    private fun addPackage(o: DBPackage): DBPackage {
-        dbPackages[o.name] = o
-        return o
-    }
-
     private fun getPackageByName(name: String?): DBPackage? {
         return dbPackages[name]
-    }
-
-    private fun addProcedure(o: Procedure): Procedure {
-        dbProcedures[o.name] = o
-        return o
     }
 
     private fun getProcedureByName(name: String?): Procedure? {
         return dbProcedures[name]
     }
 
-    fun addSequence(o: Sequence): Sequence {
-        dbSequences[o.name] = o
-        return o
-    }
-
     private fun getSequenceByName(name: String?): Sequence? {
         return dbSequences[name]
-    }
-
-    fun addSynonym(o: Synonym): Synonym {
-        dbSynonyms[o.name] = o
-        return o
     }
 
     private fun getSynonymByName(name: String?): Synonym? {
         return dbSynonyms[name]
     }
 
-    fun addTable(o: Table): Table {
-        dbTables[o.name] = o
-        return o
-    }
-
-    fun getTableByName(name: String?): Table? {
-        return dbTables[name]
-    }
-
-    private fun getColumnByName(tableName: String, columnName: String): Column? {
-        val table = getTableByName(tableName) ?: return null
-        return table.getColumnByName(columnName)
-    }
-
-    fun addTrigger(o: Trigger): Trigger {
-        dbTriggers[o.name] = o
-        return o
-    }
-
     private fun getTriggerByName(name: String?): Trigger? {
         return dbTriggers[name]
-    }
-
-    fun addView(o: View): View {
-        dbViews[o.name] = o
-        return o
     }
 
     private fun getViewByName(name: String?): View? {
@@ -188,7 +128,7 @@ class Schema {
         for (dst in destination!!.dbTables.values) {
             var existsHere = false
             for (src in dbTables.values) {
-                if (Equivalence.Companion.matches(src.name, dst.name)) {
+                if (Equivalence.matches(src.name, dst.name)) {
                     existsHere = true
                     break
                 }
@@ -210,17 +150,6 @@ class Schema {
         val res = ArrayList<View>()
         for (dst in destination!!.dbViews.values) {
             if (getViewByName(dst.name) == null) res.add(dst)
-        }
-        return res
-    }
-
-    fun tablesChanges(diffOptions: DiffOptions, destination: Schema): String {
-        var res = ""
-        // common tables
-        for (dst in destination.dbTables.values) {
-            // research in current table
-            val src = getTableByName(dst.name)
-            if (src != null) res += src.sqlUpdate(diffOptions, dst)
         }
         return res
     }
@@ -275,7 +204,7 @@ class Schema {
         val res = ArrayList<DBObjectDiff<Synonym>>()
         for (dst in destination!!.dbSynonyms.values) {
             val src = getSynonymByName(dst.name)
-            if (src != null) if (!src.dbEquals(dst)) res.add(DBObjectDiff(src, dst))
+            if (src != null) if (!src.dbEquals()) res.add(DBObjectDiff(src, dst))
         }
         return res
     }
@@ -314,19 +243,4 @@ class Schema {
         return res
     }
 
-    companion object {
-        fun <T : DBObject> cleanObjectsWithFilter(
-            filter: String?, objects: Hashtable<String, T>
-        ) {
-            if (filter == null) return
-            val trash = ArrayList<String?>()
-            for (key in objects.keys) {
-                val dbo: DBObject = objects[key] as DBObject
-                if (!dbo.name.lowercase(Locale.getDefault())
-                        .matches(filter.lowercase(Locale.getDefault()).toRegex())
-                ) trash.add(key)
-            }
-            for (key in trash) objects.remove(key)
-        }
-    }
 }

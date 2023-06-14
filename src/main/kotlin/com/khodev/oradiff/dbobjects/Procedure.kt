@@ -23,6 +23,20 @@
 package com.khodev.oradiff.dbobjects
 
 class Procedure(name: String) : Source(name) {
-    override val typeName: String
+    val typeName: String
         get() = "PROCEDURE"
+
+    fun sqlCreate(): String {
+        var res = "CREATE OR REPLACE "
+        for (line in body) {
+            res += line
+        }
+        res += "/\n"
+        return res
+    }
+
+    fun sqlUpdate(destination: Procedure): String {
+        return destination.sqlCreate()
+    }
+
 }

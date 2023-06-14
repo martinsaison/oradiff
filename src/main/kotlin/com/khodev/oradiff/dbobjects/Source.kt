@@ -24,30 +24,31 @@ package com.khodev.oradiff.dbobjects
 
 import com.khodev.oradiff.diff.DiffOptions
 
-abstract class Source internal constructor(name: String) : DBObject(name) {
+abstract class Source internal constructor(val name: String) {
     val body = ArrayList<String>()
     open fun getSource(type: String): ArrayList<String> {
         return body
     }
 
-    fun append(type: String, line: Int, text: String) {
-        getSource(type)!!.add(text)
+    fun append(type: String, text: String) {
+        getSource(type).add(text)
     }
 
-    fun dbEquals(diffOptions: DiffOptions, dst: Source): Boolean {
-        return DBObject.Companion.textForDiff(diffOptions, body) == DBObject.Companion.textForDiff(diffOptions, dst.body)
-    }
-
-    override fun sqlCreate(diffOptions: DiffOptions): String {
-        var res = "CREATE OR REPLACE "
-        for (line in body) {
-            res += DBObject.Companion.removeR4(line)
+    fun textForDiff(diffOptions: DiffOptions, text: ArrayList<String>): ArrayList<String> {
+        val res = ArrayList<String>()
+        for (line in text) {
+            val trimmedLine =
+                line.trim { it <= ' ' }.replace("\\s+".toRegex(), " ").lowercase().replace("\"", "")
+                    .replace(" (", "(")
+            if (trimmedLine.isEmpty()) continue
+            if (diffOptions.ignoreSourceComments && trimmedLine.startsWith("--")) continue
+            res.add(trimmedLine)
         }
-        res += "/\n"
         return res
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return destination.sqlCreate(diffOptions)
+    fun dbEquals(diffOptions: DiffOptions, dst: Source): Boolean {
+        return textForDiff(diffOptions, body) == textForDiff(diffOptions, dst.body)
     }
+
 }

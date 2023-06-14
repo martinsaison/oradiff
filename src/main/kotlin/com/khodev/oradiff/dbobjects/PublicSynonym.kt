@@ -22,26 +22,19 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
-
-class PublicSynonym(name: String, parent: Table) : SubDBObject(name, parent) {
-    fun dbEquals(index: PublicSynonym?): Boolean {
+class PublicSynonym(val name: String, val target: String) {
+    fun dbEquals(): Boolean {
         return true
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "PUBLIC SYNONYM"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
-        return ("create public synonym " + name + " for "
-                + parent.name + ";\n")
+    fun sqlCreate(): String {
+        return ("create public synonym " + name + " for " + target + ";\n")
     }
 
-    override fun sqlDrop(): String {
-        return "drop public synonym $name;\n"
-    }
-
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return sqlCreate(diffOptions)
+    fun sqlUpdate(): String {
+        return sqlCreate()
     }
 }

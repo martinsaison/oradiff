@@ -30,7 +30,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.*
 
-class XmlSchemaWriter(val filename: String) : SchemaWriter {
+class XmlSchemaWriter(private val filename: String) : SchemaWriter {
 
     fun write(schema: Schema) {
         val output = XMLOutputter(Format.getPrettyFormat())
@@ -87,14 +87,14 @@ class XmlSchemaWriter(val filename: String) : SchemaWriter {
     }
 
     companion object {
-        private fun <T : DBObject> convertToXml(
+        private fun <T> convertToXml(
             containerTagName: String, tagName: String,
-            dbObjects: Hashtable<String, T>
+            dbObjects: Map<String, T>
         ): Element {
             return convertToXml(containerTagName, tagName, dbObjects.values)
         }
 
-        private fun <T : DBObject> convertToXml(
+        private fun <T> convertToXml(
             containerTagName: String, tagName: String, dbObjects: Collection<T>?
         ): Element {
             val elementList = Element(containerTagName)
@@ -104,29 +104,26 @@ class XmlSchemaWriter(val filename: String) : SchemaWriter {
             return elementList
         }
 
-        private fun getXml(tagName: String, `object`: DBObject): Element {
+        private fun <T> getXml(tagName: String, `object`: T): Element {
             val element = Element(tagName)
-            element.setAttribute("name", `object`.name)
             if (`object` is Constraint) {
-                val constraint = `object`
-                element.setAttribute("constraintType", constraint.constraintType)
-                element.setAttribute("deferrable", constraint.deferrable)
-                element.setAttribute("deferred", constraint.deferred)
-                element.setAttribute("deleteRule", constraint.deleteRule)
-                element.setAttribute("generated", constraint.generated)
-                element.setAttribute("refConstraintName", constraint.refConstraintName)
-                element.setAttribute("refUserName", constraint.refUserName)
-                element.setAttribute("searchCondition", constraint.searchCondition)
-                element.setAttribute("status", constraint.status)
-                element.setAttribute("validated", constraint.validated)
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("constraintType", `object`.constraintType)
+                element.setAttribute("deferrable", `object`.deferrable)
+                element.setAttribute("deferred", `object`.deferred)
+                element.setAttribute("deleteRule", `object`.deleteRule)
+                element.setAttribute("generated", `object`.generated)
+                element.setAttribute("refConstraintName", `object`.refConstraintName)
+                element.setAttribute("refUserName", `object`.refUserName)
+                element.setAttribute("searchCondition", `object`.searchCondition)
+                element.setAttribute("status", `object`.status)
+                element.setAttribute("validated", `object`.validated)
                 val xmlColumns = Element("columns")
-                for (column in constraint.columns) xmlColumns.addContent(getXml("column", column))
+                for (column in `object`.columns) xmlColumns.addContent(getXml("column", column))
                 element.addContent(xmlColumns)
             }
-            if (`object` is TablespaceObject) {
-                element.setAttribute("tablespace", `object`.tablespace)
-            }
             if (`object` is Source) {
+                element.setAttribute("name", `object`.name)
                 val xmlBody = Element("body")
                 var bodyStr: String = ""
                 for (line in `object`.body) bodyStr += line
@@ -134,6 +131,7 @@ class XmlSchemaWriter(val filename: String) : SchemaWriter {
                 element.addContent(xmlBody)
             }
             if (`object` is DBPackage) {
+                element.setAttribute("name", `object`.name)
                 val xmlDeclaration = Element("declaration")
                 var bodyStr: String = ""
                 for (line in `object`.declaration) bodyStr += line
@@ -141,101 +139,104 @@ class XmlSchemaWriter(val filename: String) : SchemaWriter {
                 element.addContent(xmlDeclaration)
             }
             if (`object` is Sequence) {
-                val sequence = `object`
-                element.setAttribute("cacheSize", Integer.toString(sequence.cacheSize))
-                element.setAttribute("cycleFlag", sequence.isCycleFlag.toString())
-                element.setAttribute("incrementBy", sequence.incrementBy)
-                element.setAttribute("lastNumber", sequence.lastNumber)
-                element.setAttribute("maxValue", sequence.maxValue)
-                element.setAttribute("minValue", sequence.minValue)
-                element.setAttribute("orderFlag", sequence.isOrderFlag.toString())
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("cacheSize", `object`.cacheSize.toString())
+                element.setAttribute("cycleFlag", `object`.isCycleFlag.toString())
+                element.setAttribute("incrementBy", `object`.incrementBy)
+                element.setAttribute("lastNumber", `object`.lastNumber)
+                element.setAttribute("maxValue", `object`.maxValue)
+                element.setAttribute("minValue", `object`.minValue)
+                element.setAttribute("orderFlag", `object`.isOrderFlag.toString())
             }
             if (`object` is Table) {
-                val table = `object`
-                element.setAttribute("owner", table.owner)
-                element.setAttribute("comments", table.comments)
-                element.addContent(convertToXml("columns", "column", table.columns))
-                element.addContent(convertToXml("indexes", "index", table.indexes))
+                element.setAttribute("tablespace", `object`.tablespace)
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("owner", `object`.owner)
+                element.setAttribute("comments", `object`.comments)
+                element.addContent(convertToXml("columns", "column", `object`.columns))
+                element.addContent(convertToXml("indexes", "index", `object`.indexes))
                 element.addContent(
                     convertToXml(
                         "constraints", "constraint",
-                        table.constraints
+                        `object`.constraints
                     )
                 )
-                element.addContent(convertToXml("grants", "grant", table.grants))
+                element.addContent(convertToXml("grants", "grant", `object`.grants))
                 element.addContent(
                     convertToXml(
                         "publicSynonyms", "publicSynonym",
-                        table.publicSynonyms
+                        `object`.publicSynonyms
                     )
                 )
                 return element
             }
             if (`object` is Synonym) {
-                val synonym = `object`
-                element.setAttribute("owner", synonym.owner)
-                element.setAttribute("name", synonym.name)
-                element.setAttribute("tableOwner", synonym.tableOwner)
-                element.setAttribute("tableName", synonym.tableName)
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("owner", `object`.owner)
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("tableOwner", `object`.tableOwner)
+                element.setAttribute("tableName", `object`.tableName)
                 return element
             }
             if (`object` is Trigger) {
-                val trigger = `object`
-                element.setAttribute("description", trigger.description)
-                element.setAttribute("event", trigger.event)
-                element.setAttribute("status", trigger.status)
-                element.setAttribute("table", trigger.table)
-                element.setAttribute("type", trigger.type)
-                element.addContent(Element("when").setText(trigger.`when`))
-                element.addContent(Element("body").setText(trigger.body))
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("description", `object`.description)
+                element.setAttribute("event", `object`.event)
+                element.setAttribute("status", `object`.status)
+                element.setAttribute("table", `object`.table)
+                element.setAttribute("type", `object`.type)
+                element.addContent(Element("when").setText(`object`.`when`))
+                element.addContent(Element("body").setText(`object`.body))
             }
             if (`object` is View) {
-                val view = `object`
+                element.setAttribute("name", `object`.name)
                 val xmlColumns = Element("columns")
-                for (column in view.columns) xmlColumns.addContent(
+                for (column in `object`.columns) xmlColumns.addContent(
                     Element("column").setAttribute(
                         "name", column
                     )
                 )
                 element.addContent(xmlColumns)
-                element.addContent(Element("source").setText(view.source))
+                element.addContent(Element("source").setText(`object`.source))
             }
             if (`object` is Column) {
-                val column = `object`
-                element.setAttribute("id", Integer.toString(column.id))
-                element.setAttribute("type", column.type)
-                element.setAttribute("length", Integer.toString(column.length))
-                element.setAttribute("precision", Integer.toString(column.precision))
-                element.setAttribute("scale", Integer.toString(column.scale))
-                element.setAttribute("nullable", column.isNullable.toString())
-                element.setAttribute("comments", column.comment)
-                element.setAttribute("defaultValue", column.defaultValue)
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("id", `object`.id.toString())
+                element.setAttribute("type", `object`.type)
+                element.setAttribute("length", `object`.length.toString())
+                element.setAttribute("precision", `object`.precision.toString())
+                element.setAttribute("scale", `object`.scale.toString())
+                element.setAttribute("nullable", `object`.isNullable.toString())
+                element.setAttribute("comments", `object`.comment)
+                element.setAttribute("defaultValue", `object`.defaultValue)
             }
             if (`object` is Index) {
-                val index = `object`
-                element.setAttribute("owner", index.owner)
-                element.setAttribute("type", index.type)
-                element.setAttribute("isUnique", index.isUnique.toString())
-                element.setAttribute("compression", index.compression)
+                element.setAttribute("tablespace", `object`.tablespace)
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("owner", `object`.owner)
+                element.setAttribute("type", `object`.type)
+                element.setAttribute("isUnique", `object`.isUnique.toString())
+                element.setAttribute("compression", `object`.compression)
                 val xmlColumns = Element("columns")
-                for (column in index.columns) xmlColumns.addContent(getXml("column", column))
+                for (column in `object`.columns) xmlColumns.addContent(getXml("column", column))
                 element.addContent(xmlColumns)
             }
             if (`object` is Grant) {
-                val grant = `object`
-                element.setAttribute("selectPriv", (grant.isSelectPriv.toString()))
-                element.setAttribute("insertPriv", (grant.isInsertPriv.toString()))
-                element.setAttribute("deletePriv", (grant.isDeletePriv.toString()))
-                element.setAttribute("updatePriv", (grant.isUpdatePriv.toString()))
+                element.setAttribute("name", `object`.grantee)
+                element.setAttribute("selectPriv", (`object`.isSelectPriv.toString()))
+                element.setAttribute("insertPriv", (`object`.isInsertPriv.toString()))
+                element.setAttribute("deletePriv", (`object`.isDeletePriv.toString()))
+                element.setAttribute("updatePriv", (`object`.isUpdatePriv.toString()))
                 element.setAttribute(
                     "referencesPriv",
-                    (grant.isReferencesPriv.toString())
+                    (`object`.isReferencesPriv.toString())
                 )
-                element.setAttribute("alterPriv", (grant.isAlterPriv.toString()))
-                element.setAttribute("indexPriv", (grant.isIndexPriv.toString()))
+                element.setAttribute("alterPriv", (`object`.isAlterPriv.toString()))
+                element.setAttribute("indexPriv", (`object`.isIndexPriv.toString()))
             }
             if (`object` is IndexColumn) {
-                element.setAttribute("position", Integer.toString(`object`.position))
+                element.setAttribute("name", `object`.name)
+                element.setAttribute("position", `object`.position.toString())
             }
             return element
         }

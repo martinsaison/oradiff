@@ -22,38 +22,45 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
-
 class Trigger(
-    name: String, var type: String, var event: String, var table: String,
-    var `when`: String, var status: String, description: String, body: String
-) : DBObject(name) {
-    var body: String
-    var description: String
+    val name: String,
+    val type: String,
+    val event: String,
+    val table: String,
+    val `when`: String,
+    val status: String,
+    val description: String,
+    val body: String
+) {
 
-    init {
-        this.description = DBObject.Companion.removeR4(description)
-        this.body = DBObject.Companion.removeR4(body)
+    fun textForDiff(text: String): String {
+        val lines = text.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        var res = ""
+        for (line in lines) {
+            val trimmedLine = line.trim { it <= ' ' }
+            if (trimmedLine.isEmpty()) continue
+            res += trimmedLine
+        }
+        return res
     }
 
     fun dbEquals(dst: Trigger): Boolean {
-        return DBObject.Companion.textForDiff(dst.description) == DBObject.Companion.textForDiff(description) && DBObject.Companion.textForDiff(
+        return textForDiff(dst.description) == textForDiff(description) && textForDiff(
             dst.body
-        ) == DBObject.Companion.textForDiff(body)
+        ) == textForDiff(body)
     }
 
-    override val typeName: String
+    val typeName: String
         get() = "TRIGGER"
 
     private fun sanitizeTriggerDescription(description: String): String {
         // "C4S01_DEVS"."TRG_ARTUC_FOUCEATRC" -> TRG_ARTUC_FOUCEATRC
-        return description
-            .replace(""""[A-Za-z0-9_]+"\."([A-Za-z0-9_]+)"""".toRegex(), "$1")
+        return description.replace(""""[A-Za-z0-9_]+"\."([A-Za-z0-9_]+)"""".toRegex(), "$1")
             .replace("""[A-Za-z0-9_]+\.([A-Za-z0-9_]+)""".toRegex(), "$1")
     }
 
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(): String {
         return """
             CREATE OR REPLACE TRIGGER ${sanitizeTriggerDescription(description)}
             $body
@@ -62,7 +69,7 @@ class Trigger(
             """.trimIndent()
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
-        return destination.sqlCreate(diffOptions)
+    fun sqlUpdate(destination: Trigger): String {
+        return destination.sqlCreate()
     }
 }

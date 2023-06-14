@@ -22,18 +22,16 @@
  */
 package com.khodev.oradiff.dbobjects
 
-import com.khodev.oradiff.diff.DiffOptions
+class IndexColumn(val name: String, val position: Int) {
 
-class IndexColumn(name: String, var position: Int) : DBObject(name) {
-
-    override val typeName: String
+    val typeName: String
         get() = "COLUMN"
 
-    override fun sqlCreate(diffOptions: DiffOptions): String {
+    fun sqlCreate(): String {
         return ""
     }
 
-    override fun sqlUpdate(diffOptions: DiffOptions, destination: DBObject): String {
+    fun sqlUpdate(): String {
         return ""
     }
 }
